@@ -1,0 +1,19 @@
+{
+  "name": "打飞机 · Fighter Shooter",
+  "short_name": "打飞机",
+  "description": "触摸板/鼠标操控的纵版弹幕射击游戏，纯前端零依赖。",
+  "start_url": ".",
+  "scope": ".",
+  "display": "fullscreen",
+  "orientation": "any",
+  "background_color": "#05060f",
+  "theme_color": "#05060f",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+node_modules/
+desktop/node_modules/
+desktop/dist/
+dist/
+release/
+*.exe
+*.log
+.DS_Store
+Thumbs.db

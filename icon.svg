@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0a1030"/>
+      <stop offset="1" stop-color="#05060f"/>
+    </linearGradient>
+    <linearGradient id="body" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e6ffff"/>
+      <stop offset="0.45" stop-color="#36e0ff"/>
+      <stop offset="1" stop-color="#1f7fbf"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="96" fill="url(#bg)"/>
+  <!-- 机身 -->
+  <path d="M256 96 L300 300 L280 340 L256 312 L232 340 L212 300 Z" fill="url(#body)" stroke="#c8f8ff" stroke-width="6"/>
+  <!-- 机翼 -->
+  <path d="M236 232 L112 352 L236 312 Z" fill="#1f8fd0"/>
+  <path d="M276 232 L400 352 L276 312 Z" fill="#1f8fd0"/>
+  <!-- 尾焰 -->
+  <path d="M244 340 L256 420 L268 340 Z" fill="#b4e6ff" opacity="0.9"/>
+  <!-- 翼尖灯 -->
+  <circle cx="120" cy="346" r="9" fill="#ff5b6e"/>
+  <circle cx="392" cy="346" r="9" fill="#ff5b6e"/>
+</svg>

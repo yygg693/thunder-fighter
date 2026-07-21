@@ -1,0 +1,27 @@
+{
+  "name": "dafeiji-desktop",
+  "version": "1.0.0",
+  "private": true,
+  "description": "打飞机 · Fighter Shooter 桌面版（Electron 套壳）",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win --x64"
+  },
+  "build": {
+    "appId": "com.dafeiji.game",
+    "productName": "打飞机",
+    "copyright": "Copyright (c) 2026 打飞机 (Fighter Shooter) contributors. MIT License.",
+    "files": ["main.js"],
+    "extraResources": [
+      { "from": "..", "to": "game", "filter": ["index.html", "manifest.webmanifest", "icon.svg", "src/**/*"] }
+    ],
+    "directories": { "output": "dist" },
+    "win": { "target": ["portable"] },
+    "portable": { "artifactName": "打飞机-portable.exe" }
+  },
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3"
+  }
+}
