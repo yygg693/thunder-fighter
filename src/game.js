@@ -44,20 +44,83 @@ window.DJFE = window.DJFE || {};
   let bossPattern = 0;
   const player = { x: W / 2, y: H * 0.8, w: 42, h: 50, invulnUntil: 0, shieldUntil: 0 };
 
+  // ---- 配色工具（背景渐变/星云用） ----
+  function hexToRgb(h) {
+    h = (h || '#000000').replace('#', '');
+    if (h.length === 3) h = h.split('').map(c => c + c).join('');
+    const n = parseInt(h, 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  }
+  function hexA(h, a) { const [r, g, b] = hexToRgb(h); return `rgba(${r},${g},${b},${a})`; }
+  function shade(h, amt) {
+    const [r, g, b] = hexToRgb(h);
+    const f = (c) => Math.max(0, Math.min(255, Math.round(amt < 0 ? c * (1 + amt) : c + (255 - c) * amt)));
+    return `rgb(${f(r)},${f(g)},${f(b)})`;
+  }
+
+  // ---- 视差星空 ----
+  let stars = [];
+  function buildStars() {
+    stars = [];
+    const n = Math.max(60, Math.min(260, Math.round((W * H) / 7000)));
+    for (let i = 0; i < n; i++) {
+      const z = Math.random();
+      stars.push({ x: Math.random() * W, y: Math.random() * H, z, r: 0.6 + z * 1.9, sp: 0.3 + z * 1.9 });
+    }
+  }
+  buildStars();
+  window.addEventListener('resize', buildStars);
+
+  function drawBackground(now) {
+    const stg = STAGES[game.stage - 1] || STAGES[0];
+    const bg = ctx.createLinearGradient(0, 0, 0, H);
+    bg.addColorStop(0, stg.bg);
+    bg.addColorStop(1, shade(stg.bg, -0.35));
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, W, H);
+    // 星云（每关 accent 色，缓慢漂移）
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < 3; i++) {
+      const nx = W * (0.25 + 0.25 * i) + Math.sin(now / 9000 + i * 2) * 70;
+      const ny = H * (0.3 + 0.2 * i) + Math.cos(now / 11000 + i * 2) * 50;
+      const rad = Math.max(W, H) * 0.55;
+      const ng = ctx.createRadialGradient(nx, ny, 0, nx, ny, rad);
+      ng.addColorStop(0, hexA(stg.accent, 0.10));
+      ng.addColorStop(1, hexA(stg.accent, 0));
+      ctx.fillStyle = ng;
+      ctx.fillRect(0, 0, W, H);
+    }
+    ctx.restore();
+    // 视差星点
+    for (const s of stars) {
+      s.y += s.sp;
+      if (s.y > H) { s.y = -2; s.x = Math.random() * W; }
+      ctx.globalAlpha = 0.35 + s.z * 0.6;
+      ctx.fillStyle = s.z > 0.66 ? '#ffffff' : (s.z > 0.33 ? stg.accent : '#9fb6d6');
+      ctx.fillRect(s.x, s.y, s.r, s.r);
+    }
+    ctx.globalAlpha = 1;
+  }
+
   function show(id) { document.getElementById(id).classList.remove('hidden'); }
   function hide(id) { document.getElementById(id).classList.add('hidden'); }
   function setState(s) {
     game.state = s;
     if (s === STATE.MENU) {
-      refreshBestUI();
+      refreshBestUI(); refreshLeaderboard();
+      audio.music.setIntensity('menu');
       show('menu'); hide('gameover'); hide('pause'); hide('hud'); hide('panel'); hide('hint'); hide('victory');
     } else if (s === STATE.PLAYING) {
       hide('menu'); hide('gameover'); hide('pause'); hide('victory'); show('hud'); show('panel'); show('hint');
     } else if (s === STATE.GAMEOVER) {
       finalScoreEl.textContent = game.score;
+      const raw = game.score;
       game.score = DJFE.commitBest(game.score);
-      refreshBestUI();
+      DJFE.addLeaderboard({ score: raw, stage: game.stage, date: new Date().toISOString().slice(0, 10) });
+      refreshBestUI(); refreshLeaderboard();
       audio.gameOver();
+      audio.music.setIntensity('menu');
       show('gameover'); hide('pause'); hide('hud'); hide('panel'); hide('hint');
     } else if (s === STATE.VICTORY) {
       victory();
@@ -69,6 +132,19 @@ window.DJFE = window.DJFE || {};
     const b = DJFE.getBest();
     if (bestMenuEl) bestMenuEl.textContent = b;
     if (bestGOEl) bestGOEl.textContent = b;
+  }
+  function refreshLeaderboard() {
+    const lb = DJFE.getLeaderboard();
+    ['menuLB', 'goLB'].forEach((id) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      if (!lb.length) { el.innerHTML = '<div class="lbempty" data-i18n="lb.empty">暂无记录</div>'; return; }
+      el.innerHTML = lb.slice(0, 5).map((e, i) =>
+        `<div class="lbrow"><span class="lbrank">${i + 1}</span>` +
+        `<span class="lbscore">${e.score}</span>` +
+        `<span class="lbstage">${e.stage ? ('第' + e.stage + '关') : ''}</span></div>`
+      ).join('');
+    });
   }
 
   // ---- 难度 ----
@@ -93,6 +169,7 @@ window.DJFE = window.DJFE || {};
     const d = DIFFS[selectedDiff];
     const now = performance.now();
     game.score = 0; game.lives = 3; game.bombs = d.bombs; game.power = 1;
+    audio.music.setIntensity('playing'); audio.music.setStage(1);
     game.bullets = []; game.enemies = []; game.ebullets = []; game.particles = []; game.items = [];
     game.diff = d; game.spawnBase = d.spawnBase; game.lastShot = 0; game.flash = 0;
     game.wave = 0; game.stage = 1; game.betweenWaves = true; game.nextWaveAt = now + 700; game.stageBannerUntil = 0;
@@ -104,10 +181,12 @@ window.DJFE = window.DJFE || {};
   }
   function gameOver() { setState(STATE.GAMEOVER); }
   function victory() {
+    const raw = game.score;
     game.score = DJFE.commitBest(game.score);
+    DJFE.addLeaderboard({ score: raw, stage: game.stage, date: new Date().toISOString().slice(0, 10), win: true });
     const fv = document.getElementById('finalScoreV'); if (fv) fv.textContent = game.score;
     const bv = document.getElementById('bestV'); if (bv) bv.textContent = DJFE.getBest();
-    refreshBestUI();
+    refreshBestUI(); refreshLeaderboard();
     audio.bomb();
     hide('menu'); hide('gameover'); hide('pause'); hide('hud'); hide('panel'); hide('hint');
     show('victory');
@@ -144,6 +223,7 @@ window.DJFE = window.DJFE || {};
       phase: 0, fireT: 0, fireGap: Math.max(420, 900 - tier * 120),
     };
     audio.boss();
+    audio.music.setIntensity('boss'); audio.music.setStage(game.stage);
   }
   function bossFire(b) {
     const cx = b.x, cy = b.y + b.h * 0.4;
@@ -174,6 +254,7 @@ window.DJFE = window.DJFE || {};
     addRing(b.x, b.y, 30, Math.max(W, H) * 0.5);
     game.shake = 30;
     audio.bomb();
+    audio.music.setIntensity('playing');
     game.score += 600 + game.wave * 150;
     for (let i = 0; i < 3; i++) dropItem(b.x + (Math.random() - 0.5) * 140, b.y + (Math.random() - 0.5) * 60, true);
     game.boss = null;
@@ -338,6 +419,10 @@ window.DJFE = window.DJFE || {};
     if (game.state === STATE.PLAYING) {
       updatePlayer(now, dt);
       if (now - game.lastShot > game.shootInterval) { shoot(); game.lastShot = now; }
+      // 引擎尾迹火花
+      if (game.runFrames % 2 === 0) {
+        game.particles.push({ x: player.x + (Math.random() - 0.5) * 8, y: player.y + player.h * 0.4, vx: (Math.random() - 0.5) * 0.6, vy: 1.4 + Math.random() * 1.2, life: 0.5, hue: 195 });
+      }
 
       // 波次调度
       if (game.betweenWaves) {
@@ -480,19 +565,15 @@ window.DJFE = window.DJFE || {};
       ctx.translate((Math.random() - 0.5) * game.shake, (Math.random() - 0.5) * game.shake);
     }
     const stg = STAGES[game.stage - 1] || STAGES[0];
-    ctx.fillStyle = stg.bg;
-    ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = stg.accent;
-    ctx.globalAlpha = 0.5;
-    for (let i = 0; i < 40; i++) {
-      const sx = (i * 97 + game.runFrames * 0.6) % W;
-      const sy = (i * 53 + game.runFrames * 1.2) % H;
-      ctx.fillRect(sx, sy, 2, 2);
-    }
-    ctx.globalAlpha = 1;
+    drawBackground(now);
 
-    ctx.fillStyle = '#7df9ff';
-    game.bullets.forEach(b => { ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2); ctx.fill(); });
+    game.bullets.forEach(b => {
+      ctx.save();
+      ctx.shadowColor = '#7df9ff'; ctx.shadowBlur = 10;
+      ctx.fillStyle = '#e6fbff';
+      ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    });
 
     ctx.fillStyle = '#ff7a3c';
     game.ebullets.forEach(eb => {
@@ -503,7 +584,7 @@ window.DJFE = window.DJFE || {};
 
     game.items.forEach(DJFE.draw.item);
     game.enemies.forEach(DJFE.draw.enemy);
-    if (game.boss) DJFE.draw.boss(game.boss);
+    if (game.boss) DJFE.draw.boss(game.boss, now);
 
     const invuln = now < player.invulnUntil;
     const blink = invuln && (Math.floor(now / 100) % 2 === 0);
@@ -514,8 +595,13 @@ window.DJFE = window.DJFE || {};
     }
 
     game.particles.forEach(p => {
-      ctx.fillStyle = `hsla(${p.hue},90%,65%,${p.life})`;
-      ctx.fillRect(p.x - 2, p.y - 2, 4, 4);
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, p.life);
+      ctx.fillStyle = `hsl(${p.hue},90%,${50 + 20 * p.life}%)`;
+      ctx.shadowColor = `hsl(${p.hue},90%,65%)`; ctx.shadowBlur = 8;
+      const sz = 2 + 3 * p.life;
+      ctx.fillRect(p.x - sz / 2, p.y - sz / 2, sz, sz);
+      ctx.restore();
     });
 
     game.rings.forEach(rg => {

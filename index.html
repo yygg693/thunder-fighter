@@ -51,7 +51,7 @@
     .overlay {
       position: fixed; inset: 0;
       display: flex; flex-direction: column; align-items: center; justify-content: center;
-      gap: 18px; cursor: default;
+      gap: 16px; cursor: default;
       background: rgba(5,6,15,.82);
       backdrop-filter: blur(2px);
       text-align: center;
@@ -90,60 +90,137 @@
       background: transparent; color: #9fb3d1;
       border: 1px solid rgba(120,150,200,.3); cursor: pointer;
     }
+
+    /* 排行榜 */
+    .leaderboard {
+      width: 280px; background: rgba(10,18,36,.55);
+      border: 1px solid rgba(80,140,220,.25); border-radius: 10px;
+      padding: 8px 12px; font-size: 13px;
+    }
+    .leaderboard .lbtitle { color: #8fe3ff; font-size: 13px; letter-spacing: 1px; margin-bottom: 4px; }
+    .lbrow { display: flex; align-items: center; gap: 10px; padding: 3px 0; color: #cfe0f5; }
+    .lbrank {
+      width: 20px; height: 20px; line-height: 20px; border-radius: 50%;
+      background: rgba(54,224,255,.18); color: #8fe3ff; font-size: 11px; font-weight: 700;
+    }
+    .lbrow:nth-child(1) .lbrank { background: rgba(255,216,107,.25); color: #ffd86b; }
+    .lbscore { flex: 1; text-align: left; color: #fff; font-variant-numeric: tabular-nums; }
+    .lbstage { color: #7e90b0; font-size: 11px; }
+    .lbempty { color: #6b7a99; padding: 6px 0; }
+
+    /* 设置浮层 */
+    #settings .setbox {
+      width: 320px; background: rgba(10,18,36,.7);
+      border: 1px solid rgba(80,140,220,.3); border-radius: 12px; padding: 18px 20px;
+      display: flex; flex-direction: column; gap: 14px; text-align: left;
+    }
+    #settings .setrow { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    #settings .setrow label { color: #bcd4f5; font-size: 14px; }
+    #settings input[type=range] { width: 150px; cursor: pointer; accent-color: #36e0ff; }
+    #settings .setbtn {
+      padding: 8px 14px; font-size: 13px; border-radius: 8px; cursor: pointer;
+      background: rgba(40,60,100,.4); color: #bcd4f5;
+      border: 1px solid rgba(90,140,220,.35);
+    }
+    #settings .setbtn:hover { background: rgba(54,224,255,.18); }
+    #settings .seg { display: flex; gap: 6px; }
+    #settings .seg button {
+      padding: 6px 12px; font-size: 13px; border-radius: 6px; cursor: pointer;
+      background: rgba(40,60,100,.4); color: #bcd4f5;
+      border: 1px solid rgba(90,140,220,.35);
+    }
+    #settings .seg button.sel { background: rgba(54,224,255,.22); color: #fff; border-color: #36e0ff; }
   </style>
 </head>
 <body>
   <canvas id="game"></canvas>
 
-  <div id="hud" class="hidden">分数 <b id="score">0</b> · 生命 <b id="lives">3</b> · 炸弹 <b id="bombs">1</b> · 关卡 <b id="stage">1</b> · 波次 <b id="wave">1</b> · 火力 <b id="power">1</b></div>
+  <div id="hud" class="hidden"><span data-i18n="hud.score">分数</span> <b id="score">0</b> · <span data-i18n="hud.life">生命</span> <b id="lives">3</b> · <span data-i18n="hud.bomb">炸弹</span> <b id="bombs">1</b> · <span data-i18n="hud.stage">关卡</span> <b id="stage">1</b> · <span data-i18n="hud.wave">波次</span> <b id="wave">1</b> · <span data-i18n="hud.power">火力</span> <b id="power">1</b></div>
   <div id="panel" class="hidden">
-    <label>触摸板灵敏度 <span id="sensVal">5</span></label>
+    <label><span data-i18n="panel.sens">触摸板灵敏度</span> <span id="sensVal">5</span></label>
     <input id="sens" type="range" min="1" max="10" value="5">
     <button id="muteBtn" class="mini">音效 开</button>
+    <button id="settingsBtn" class="mini">设置</button>
   </div>
-  <div id="hint" class="hidden">移动手指控制战机 · 自动开火 · 点击放炸弹 · 击杀掉 火力(P)/护盾(S)/炸弹(B)/生命(L) · WASD/方向键 · ESC 暂停</div>
+  <div id="hint" class="hidden" data-i18n="hint">移动手指控制战机 · 自动开火 · 点击放炸弹 · 击杀掉 火力(P)/护盾(S)/炸弹(B)/生命(L) · WASD/方向键 · ESC 暂停</div>
 
   <!-- 开始菜单 -->
   <div id="menu" class="overlay">
-    <h1>打飞机</h1>
-    <div class="sub">FIGHTER&nbsp;SHOOTER</div>
-    <div class="best">历史最高 <b id="bestMenu">0</b></div>
-    <div class="howto">
+    <h1 data-i18n="menu.title">打飞机</h1>
+    <div class="sub" data-i18n="menu.sub">FIGHTER&nbsp;SHOOTER</div>
+    <div class="best"><span data-i18n="menu.best">历史最高</span> <b id="bestMenu">0</b></div>
+    <div class="leaderboard">
+      <div class="lbtitle" data-i18n="menu.lb">本地排行榜</div>
+      <div id="menuLB"></div>
+    </div>
+    <div class="howto" data-i18n="menu.howto">
       手指在触摸板上移动 → 战机跟到对应位置，自动开火<br>
       点击屏幕放炸弹清屏 · WASD / 方向键也能操控 · ESC 暂停
     </div>
     <div class="diff">
-      <button data-diff="easy">简单</button>
-      <button data-diff="normal" class="sel">普通</button>
-      <button data-diff="hard">困难</button>
+      <button data-diff="easy" data-i18n="diff.easy">简单</button>
+      <button data-diff="normal" class="sel" data-i18n="diff.normal">普通</button>
+      <button data-diff="hard" data-i18n="diff.hard">困难</button>
     </div>
-    <button id="startBtn" class="primary">开始游戏</button>
+    <button id="startBtn" class="primary" data-i18n="menu.start">开始游戏</button>
+    <button id="menuSettingsBtn" data-i18n="menu.settings">设置</button>
   </div>
 
   <!-- 死亡菜单 -->
   <div id="gameover" class="overlay hidden">
-    <h1>坠机了！</h1>
-    <div class="sub">本局得分 <b id="finalScore">0</b></div>
-    <div class="best">历史最高 <b id="bestGO">0</b></div>
-    <button id="retryBtn" class="primary">再来一局</button>
-    <button id="menuBtn">返回菜单</button>
+    <h1 data-i18n="gameover.title">坠机了！</h1>
+    <div class="sub"><span data-i18n="gameover.score">本局得分</span> <b id="finalScore">0</b></div>
+    <div class="best"><span data-i18n="gameover.best">历史最高</span> <b id="bestGO">0</b></div>
+    <div class="leaderboard">
+      <div class="lbtitle" data-i18n="menu.lb">本地排行榜</div>
+      <div id="goLB"></div>
+    </div>
+    <button id="retryBtn" class="primary" data-i18n="retry">再来一局</button>
+    <button id="menuBtn" data-i18n="menuBtn">返回菜单</button>
   </div>
 
   <!-- 暂停菜单 -->
   <div id="pause" class="overlay hidden">
-    <h1>已暂停</h1>
-    <button id="resumeBtn" class="primary">继续</button>
-    <button id="quitBtn">返回菜单</button>
+    <h1 data-i18n="pause.title">已暂停</h1>
+    <button id="resumeBtn" class="primary" data-i18n="resume">继续</button>
+    <button id="quitBtn" data-i18n="menuBtn">返回菜单</button>
   </div>
 
   <!-- 通关演出 -->
   <div id="victory" class="overlay hidden">
-    <h1>通关！</h1>
-    <div class="sub">全部关卡肃清 · 指挥官辛苦了</div>
-    <div class="best">本局得分 <b id="finalScoreV">0</b></div>
-    <div class="best">历史最高 <b id="bestV">0</b></div>
-    <button id="victoryRetry" class="primary">再战一局</button>
-    <button id="victoryMenu">返回菜单</button>
+    <h1 data-i18n="victory.title">通关！</h1>
+    <div class="sub" data-i18n="victory.sub">全部关卡肃清 · 指挥官辛苦了</div>
+    <div class="best"><span data-i18n="victory.score">本局得分</span> <b id="finalScoreV">0</b></div>
+    <div class="best"><span data-i18n="victory.best">历史最高</span> <b id="bestV">0</b></div>
+    <button id="victoryRetry" class="primary" data-i18n="retry">再战一局</button>
+    <button id="victoryMenu" data-i18n="menuBtn">返回菜单</button>
+  </div>
+
+  <!-- 设置浮层 -->
+  <div id="settings" class="overlay hidden">
+    <h1 data-i18n="settings.title">设置</h1>
+    <div class="setbox">
+      <div class="setrow">
+        <label data-i18n="settings.music">音乐音量</label>
+        <input id="musicVol" type="range" min="0" max="100" value="55">
+      </div>
+      <div class="setrow">
+        <label data-i18n="settings.sfx">音效音量</label>
+        <input id="sfxVol" type="range" min="0" max="100" value="85">
+      </div>
+      <div class="setrow">
+        <label data-i18n="settings.fullscreen">全屏</label>
+        <button id="fullscreenBtn" class="setbtn" data-i18n="settings.on">开启</button>
+      </div>
+      <div class="setrow">
+        <label data-i18n="settings.lang">语言</label>
+        <div class="seg">
+          <button data-lang="zh" class="sel">中文</button>
+          <button data-lang="en">EN</button>
+        </div>
+      </div>
+      <button id="settingsClose" class="setbtn" data-i18n="settings.close" style="align-self:center;">关闭</button>
+    </div>
   </div>
 
   <!-- 模块化脚本：core(基础) → entities(绘制) → game(逻辑) → main(启动) -->
