@@ -19,6 +19,7 @@ window.DJFE = window.DJFE || {};
   const bombsEl = document.getElementById('bombs');
   const waveEl = document.getElementById('wave');
   const powerEl = document.getElementById('power');
+  const stageEl = document.getElementById('stage');
   const finalScoreEl = document.getElementById('finalScore');
   const bestMenuEl = document.getElementById('bestMenu');
   const bestGOEl = document.getElementById('bestGO');
@@ -26,7 +27,7 @@ window.DJFE = window.DJFE || {};
   const sensValEl = document.getElementById('sensVal');
 
   // ---- 状态机 ----
-  const STATE = { MENU: 'menu', PLAYING: 'playing', GAMEOVER: 'gameover', PAUSED: 'paused' };
+  const STATE = { MENU: 'menu', PLAYING: 'playing', GAMEOVER: 'gameover', PAUSED: 'paused', VICTORY: 'victory' };
   const game = {
     state: STATE.MENU,
     score: 0, lives: 3, bombs: 1,
@@ -34,7 +35,8 @@ window.DJFE = window.DJFE || {};
     lastShot: 0, shootInterval: 140,
     flash: 0, runFrames: 0, diff: null,
     wave: 0, waveRemaining: 0, betweenWaves: true, nextWaveAt: 0,
-    waveBannerUntil: 0, spawnTimer: 0, spawnInterval: 700,
+    stage: 1, stageWave: 1,
+    waveBannerUntil: 0, stageBannerUntil: 0, spawnTimer: 0, spawnInterval: 700,
     power: 1,
     boss: null, isBossWave: false,
     shake: 0, rings: [], muzzle: 0,
@@ -48,15 +50,17 @@ window.DJFE = window.DJFE || {};
     game.state = s;
     if (s === STATE.MENU) {
       refreshBestUI();
-      show('menu'); hide('gameover'); hide('pause'); hide('hud'); hide('panel'); hide('hint');
+      show('menu'); hide('gameover'); hide('pause'); hide('hud'); hide('panel'); hide('hint'); hide('victory');
     } else if (s === STATE.PLAYING) {
-      hide('menu'); hide('gameover'); hide('pause'); show('hud'); show('panel'); show('hint');
+      hide('menu'); hide('gameover'); hide('pause'); hide('victory'); show('hud'); show('panel'); show('hint');
     } else if (s === STATE.GAMEOVER) {
       finalScoreEl.textContent = game.score;
       game.score = DJFE.commitBest(game.score);
       refreshBestUI();
       audio.gameOver();
       show('gameover'); hide('pause'); hide('hud'); hide('panel'); hide('hint');
+    } else if (s === STATE.VICTORY) {
+      victory();
     } else if (s === STATE.PAUSED) {
       show('pause');
     }
@@ -73,6 +77,16 @@ window.DJFE = window.DJFE || {};
     normal: { spawnBase: 700, speedMul: 1.0, hp: 2, bombs: 1 },
     hard:   { spawnBase: 500, speedMul: 1.3, hp: 3, bombs: 1 },
   };
+
+  // ---- 关卡战役 ----
+  const STAGE_WAVES = 3; // 每关波数（最后一波为 Boss）
+  const STAGES = [
+    { name: '近地轨道', bg: '#05060f', accent: '#36e0ff', bossName: '哨戒机甲', bossHue: 200, bossHp: 170 },
+    { name: '陨石带',   bg: '#0d0712', accent: '#ffb24a', bossName: '采矿巨蝎', bossHue: 30,  bossHp: 240 },
+    { name: '电离层',   bg: '#04101a', accent: '#7dff9b', bossName: '雷云母舰', bossHue: 150, bossHp: 330 },
+    { name: '深空要塞', bg: '#14060f', accent: '#ff5b8a', bossName: '歼灭核心', bossHue: 340, bossHp: 460 },
+  ];
+
   let selectedDiff = 'normal';
 
   function startGame() {
@@ -81,7 +95,7 @@ window.DJFE = window.DJFE || {};
     game.score = 0; game.lives = 3; game.bombs = d.bombs; game.power = 1;
     game.bullets = []; game.enemies = []; game.ebullets = []; game.particles = []; game.items = [];
     game.diff = d; game.spawnBase = d.spawnBase; game.lastShot = 0; game.flash = 0;
-    game.wave = 0; game.betweenWaves = true; game.nextWaveAt = now + 700;
+    game.wave = 0; game.stage = 1; game.betweenWaves = true; game.nextWaveAt = now + 700; game.stageBannerUntil = 0;
     game.boss = null; game.isBossWave = false; bossPattern = 0;
     game.shake = 0; game.rings = []; game.muzzle = 0;
     player.x = W / 2; player.y = H * 0.8; player.invulnUntil = 0; player.shieldUntil = 0;
@@ -89,14 +103,26 @@ window.DJFE = window.DJFE || {};
     setState(STATE.PLAYING);
   }
   function gameOver() { setState(STATE.GAMEOVER); }
+  function victory() {
+    game.score = DJFE.commitBest(game.score);
+    const fv = document.getElementById('finalScoreV'); if (fv) fv.textContent = game.score;
+    const bv = document.getElementById('bestV'); if (bv) bv.textContent = DJFE.getBest();
+    refreshBestUI();
+    audio.bomb();
+    hide('menu'); hide('gameover'); hide('pause'); hide('hud'); hide('panel'); hide('hint');
+    show('victory');
+  }
 
   // ---- M4 波次调度 ----
   function beginWave(n, now) {
     game.wave = n;
-    game.waveBannerUntil = now + 1600;
+    game.stage = Math.floor((n - 1) / STAGE_WAVES) + 1;
+    game.stageWave = ((n - 1) % STAGE_WAVES) + 1;
+    game.isBossWave = (game.stageWave === STAGE_WAVES);
     game.spawnInterval = Math.max(220, game.spawnBase - n * 18);
     game.shootInterval = Math.max(95, 150 - n * 3);
-    game.isBossWave = (n % 3 === 0);
+    if (game.stageWave === 1) game.stageBannerUntil = now + 2400;
+    game.waveBannerUntil = now + 1600;
     if (game.isBossWave) {
       game.waveRemaining = 0;
       spawnBoss(n, now);
@@ -108,11 +134,13 @@ window.DJFE = window.DJFE || {};
 
   // ---- M5 Boss ----
   function spawnBoss(n, now) {
+    const st = STAGES[game.stage - 1] || STAGES[STAGES.length - 1];
     const tier = Math.floor(n / 3);
-    const hp = 140 + (tier - 1) * 90;
+    const hp = st.bossHp;
     game.boss = {
       x: W / 2, y: -90, ty: H * 0.16,
       hp, maxHp: hp, w: 140, h: 92,
+      hue: st.bossHue, name: st.bossName,
       phase: 0, fireT: 0, fireGap: Math.max(420, 900 - tier * 120),
     };
     audio.boss();
@@ -220,7 +248,7 @@ window.DJFE = window.DJFE || {};
     let type = 'straight';
     if (r < 0.20) type = 'weaver';
     else if (r < 0.25 + 0.25 * v) type = 'shooter';
-    else if (r > 0.94) type = 'elite';
+    else if (r > 0.94 - (game.stage - 1) * 0.02) type = 'elite';
     const baseX = Math.random() * (W - 70) + 35;
     const hpMul = type === 'elite' ? 3 : (type === 'shooter' ? 1.5 : 1);
     const waveHp = 1 + (game.wave - 1) * 0.06;
@@ -323,8 +351,12 @@ window.DJFE = window.DJFE || {};
             // Boss 未死，等待
           } else {
             game.score += game.wave * 100;
-            game.betweenWaves = true;
-            game.nextWaveAt = now + 1500;
+            if (game.isBossWave && game.stage >= STAGES.length) {
+              setState(STATE.VICTORY);
+            } else {
+              game.betweenWaves = true;
+              game.nextWaveAt = now + 1500;
+            }
           }
         }
       }
@@ -434,6 +466,7 @@ window.DJFE = window.DJFE || {};
       bombsEl.textContent = game.bombs;
       waveEl.textContent = game.wave;
       powerEl.textContent = game.power;
+      stageEl.textContent = game.stage;
     }
 
     render(now);
@@ -446,14 +479,17 @@ window.DJFE = window.DJFE || {};
     if (game.shake > 0.3) {
       ctx.translate((Math.random() - 0.5) * game.shake, (Math.random() - 0.5) * game.shake);
     }
-    ctx.fillStyle = '#05060f';
+    const stg = STAGES[game.stage - 1] || STAGES[0];
+    ctx.fillStyle = stg.bg;
     ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = 'rgba(120,160,255,0.5)';
+    ctx.fillStyle = stg.accent;
+    ctx.globalAlpha = 0.5;
     for (let i = 0; i < 40; i++) {
       const sx = (i * 97 + game.runFrames * 0.6) % W;
       const sy = (i * 53 + game.runFrames * 1.2) % H;
       ctx.fillRect(sx, sy, 2, 2);
     }
+    ctx.globalAlpha = 1;
 
     ctx.fillStyle = '#7df9ff';
     game.bullets.forEach(b => { ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2); ctx.fill(); });
@@ -493,6 +529,20 @@ window.DJFE = window.DJFE || {};
       ctx.fillRect(0, 0, W, H);
     }
 
+    if (game.state === STATE.PLAYING && now < game.stageBannerUntil) {
+      const sa = Math.min(1, (game.stageBannerUntil - now) / 500);
+      ctx.save();
+      ctx.globalAlpha = sa;
+      ctx.textAlign = 'center';
+      ctx.fillStyle = stg.accent;
+      ctx.font = 'bold 20px -apple-system, "PingFang SC", sans-serif';
+      ctx.fillText('STAGE ' + game.stage + ' / ' + STAGES.length, W / 2, H * 0.32);
+      ctx.font = 'bold 40px -apple-system, "PingFang SC", sans-serif';
+      ctx.shadowColor = stg.accent; ctx.shadowBlur = 18;
+      ctx.fillText(stg.name, W / 2, H * 0.42);
+      ctx.restore();
+    }
+
     if (game.state === STATE.PLAYING && now < game.waveBannerUntil) {
       const a = Math.min(1, (game.waveBannerUntil - now) / 400);
       ctx.save();
@@ -519,7 +569,7 @@ window.DJFE = window.DJFE || {};
       ctx.fillStyle = '#ffd86b';
       ctx.font = '12px -apple-system, sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText('BOSS', W / 2, by + bh + 13);
+      ctx.fillText(b.name || 'BOSS', W / 2, by + bh + 13);
     }
 
     ctx.restore();

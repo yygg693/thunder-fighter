@@ -24,6 +24,8 @@
   $('menuBtn').addEventListener('click', () => DJFE.Game.toMenu());
   $('quitBtn').addEventListener('click', () => DJFE.Game.toMenu());
   $('resumeBtn').addEventListener('click', () => DJFE.Game.resume());
+  $('victoryRetry').addEventListener('click', () => DJFE.Game.start());
+  $('victoryMenu').addEventListener('click', () => DJFE.Game.toMenu());
 
   // 静音切换
   DJFE.Game.setMute($('muteBtn'));

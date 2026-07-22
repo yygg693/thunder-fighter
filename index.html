@@ -95,7 +95,7 @@
 <body>
   <canvas id="game"></canvas>
 
-  <div id="hud" class="hidden">分数 <b id="score">0</b> · 生命 <b id="lives">3</b> · 炸弹 <b id="bombs">1</b> · 波次 <b id="wave">1</b> · 火力 <b id="power">1</b></div>
+  <div id="hud" class="hidden">分数 <b id="score">0</b> · 生命 <b id="lives">3</b> · 炸弹 <b id="bombs">1</b> · 关卡 <b id="stage">1</b> · 波次 <b id="wave">1</b> · 火力 <b id="power">1</b></div>
   <div id="panel" class="hidden">
     <label>触摸板灵敏度 <span id="sensVal">5</span></label>
     <input id="sens" type="range" min="1" max="10" value="5">
@@ -134,6 +134,16 @@
     <h1>已暂停</h1>
     <button id="resumeBtn" class="primary">继续</button>
     <button id="quitBtn">返回菜单</button>
+  </div>
+
+  <!-- 通关演出 -->
+  <div id="victory" class="overlay hidden">
+    <h1>通关！</h1>
+    <div class="sub">全部关卡肃清 · 指挥官辛苦了</div>
+    <div class="best">本局得分 <b id="finalScoreV">0</b></div>
+    <div class="best">历史最高 <b id="bestV">0</b></div>
+    <button id="victoryRetry" class="primary">再战一局</button>
+    <button id="victoryMenu">返回菜单</button>
   </div>
 
   <!-- 模块化脚本：core(基础) → entities(绘制) → game(逻辑) → main(启动) -->
