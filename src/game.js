@@ -92,27 +92,25 @@ window.DJFE = window.DJFE || {};
       ctx.fillRect(0, 0, W, H);
     }
     ctx.restore();
-    // 远景天体（每关 accent 色，缓慢漂移）
-    const planetR = Math.min(W, H) * 0.34;
-    const pxc = W * 0.80 + Math.sin(now / 16000) * 24;
-    const pyc = H * 0.20 + Math.cos(now / 19000) * 18;
+    // 远景天体（每关 accent 色，藏于右上角作远景氛围，不抢菜单、不像可点按钮）
+    const planetR = Math.min(W, H) * 0.20;
+    const pxc = W + planetR * 0.35 + Math.sin(now / 16000) * 14;
+    const pyc = -planetR * 0.25 + Math.cos(now / 19000) * 12;
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
     const pg = ctx.createRadialGradient(pxc, pyc, planetR * 0.2, pxc, pyc, planetR);
-    pg.addColorStop(0, hexA(stg.accent, 0.16));
-    pg.addColorStop(0.7, hexA(stg.accent, 0.05));
+    pg.addColorStop(0, hexA(stg.accent, 0.10));
+    pg.addColorStop(0.7, hexA(stg.accent, 0.03));
     pg.addColorStop(1, hexA(stg.accent, 0));
     ctx.fillStyle = pg;
     ctx.beginPath(); ctx.arc(pxc, pyc, planetR, 0, Math.PI * 2); ctx.fill();
     ctx.restore();
-    const bg2 = ctx.createRadialGradient(pxc - planetR * 0.3, pyc - planetR * 0.3, planetR * 0.1, pxc, pyc, planetR * 0.62);
-    bg2.addColorStop(0, shade(stg.accent, -0.5));
-    bg2.addColorStop(0.85, shade(stg.accent, -0.82));
-    bg2.addColorStop(1, shade(stg.accent, -0.95));
+    const bg2 = ctx.createRadialGradient(pxc - planetR * 0.3, pyc - planetR * 0.3, planetR * 0.1, pxc, pyc, planetR * 0.6);
+    bg2.addColorStop(0, shade(stg.accent, -0.55));
+    bg2.addColorStop(0.85, shade(stg.accent, -0.85));
+    bg2.addColorStop(1, shade(stg.accent, -0.97));
     ctx.fillStyle = bg2;
-    ctx.beginPath(); ctx.arc(pxc, pyc, planetR * 0.62, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = hexA(stg.accent, 0.45); ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.arc(pxc, pyc, planetR * 0.62, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(pxc, pyc, planetR * 0.6, 0, Math.PI * 2); ctx.fill();
     // 底部地平线辉光
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
@@ -748,10 +746,10 @@ window.DJFE = window.DJFE || {};
       ctx.fillText(b.name || 'BOSS', W / 2, by + bh + 13);
     }
 
-    // 电影感暗角
-    const vg = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.42, W / 2, H / 2, Math.max(W, H) * 0.78);
+    // 电影感暗角（边缘压暗，中心保持通透，menu 不影响文字）
+    const vg = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.5, W / 2, H / 2, Math.max(W, H) * 0.82);
     vg.addColorStop(0, 'rgba(0,0,0,0)');
-    vg.addColorStop(1, 'rgba(0,0,0,0.42)');
+    vg.addColorStop(1, 'rgba(0,0,0,0.30)');
     ctx.fillStyle = vg;
     ctx.fillRect(0, 0, W, H);
 

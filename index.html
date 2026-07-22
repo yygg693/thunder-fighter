@@ -16,7 +16,8 @@
       cursor: none;
       color: #cfe6ff;
     }
-    #game { display: block; touch-action: none; }
+    #game { display: block; touch-action: none; z-index: 0; }
+    .overlay { z-index: 10; pointer-events: auto; }
 
     /* HUD */
     #hud {
