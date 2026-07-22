@@ -575,10 +575,23 @@ window.DJFE = window.DJFE || {};
       ctx.restore();
     });
 
-    ctx.fillStyle = '#ff7a3c';
+    // 敌弹：高可见度三层（外晕 + 橙红环 + 白热核心）
     game.ebullets.forEach(eb => {
-      ctx.shadowColor = '#ff5a2c'; ctx.shadowBlur = 8;
-      ctx.beginPath(); ctx.arc(eb.x, eb.y, eb.r, 0, Math.PI * 2); ctx.fill();
+      const r = eb.r || 6;
+      ctx.save();
+      // 外晕
+      ctx.shadowColor = '#ff3b2c'; ctx.shadowBlur = 16;
+      ctx.fillStyle = 'rgba(255,90,44,0.30)';
+      ctx.beginPath(); ctx.arc(eb.x, eb.y, r + 4, 0, Math.PI * 2); ctx.fill();
+      // 橙红主体环
+      ctx.shadowBlur = 8;
+      ctx.fillStyle = '#ff6a2c';
+      ctx.beginPath(); ctx.arc(eb.x, eb.y, r, 0, Math.PI * 2); ctx.fill();
+      // 白热核心
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = '#fff3e8';
+      ctx.beginPath(); ctx.arc(eb.x, eb.y, Math.max(2, r * 0.5), 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
     });
     ctx.shadowBlur = 0;
 
