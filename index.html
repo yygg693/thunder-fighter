@@ -131,6 +131,49 @@
       border: 1px solid rgba(90,140,220,.35);
     }
     #settings .seg button.sel { background: rgba(54,224,255,.22); color: #fff; border-color: #36e0ff; }
+
+    /* 皮肤面板 */
+    .skinwrap { max-height: 54vh; overflow-y: auto; padding: 4px 6px; }
+    .skingrid { display: grid; grid-template-columns: repeat(auto-fill, 122px); gap: 12px; justify-content: center; }
+    .skincard {
+      width: 122px; background: rgba(10,18,36,.6); border: 1px solid rgba(80,140,220,.25);
+      border-radius: 10px; padding: 6px; cursor: pointer; position: relative; transition: .15s;
+    }
+    .skincard:hover { border-color: rgba(54,224,255,.5); transform: translateY(-2px); }
+    .skincard.sel { border-color: #36e0ff; box-shadow: 0 0 14px rgba(54,224,255,.45); }
+    .skincard canvas { display: block; margin: 0 auto; }
+    .skinname { color: #cfe0f5; font-size: 12px; text-align: center; margin-top: 2px; }
+    .skinmini { display: flex; gap: 4px; justify-content: center; margin-top: 5px; }
+    .skinmini button {
+      font-size: 10px; padding: 2px 7px; border-radius: 5px; cursor: pointer;
+      background: rgba(40,60,100,.4); color: #bcd4f5; border: 1px solid rgba(90,140,220,.35);
+    }
+    .skinmini button:hover { background: rgba(54,224,255,.2); }
+    .skinmini button.del:hover { background: rgba(255,90,90,.25); }
+    .menu-aux { display: flex; gap: 12px; align-items: center; }
+
+    /* 皮肤编辑器 */
+    .editorbox {
+      display: flex; gap: 24px; align-items: center;
+      background: rgba(10,18,36,.7); border: 1px solid rgba(80,140,220,.3);
+      border-radius: 12px; padding: 18px 24px;
+    }
+    .edpreview {
+      background: radial-gradient(circle at 50% 42%, rgba(54,224,255,.14), transparent 72%);
+      border-radius: 10px; padding: 4px;
+    }
+    .edform { display: flex; flex-direction: column; gap: 9px; text-align: left; }
+    .edrow { display: flex; align-items: center; justify-content: space-between; gap: 14px; width: 280px; }
+    .edrow label { color: #bcd4f5; font-size: 14px; }
+    .edrow input[type=color] { width: 48px; height: 28px; border: none; background: none; cursor: pointer; padding: 0; }
+    .edrow input[type=text] {
+      width: 150px; padding: 5px 8px; border-radius: 6px;
+      background: rgba(40,60,100,.4); border: 1px solid rgba(90,140,220,.35); color: #fff;
+    }
+    .edrow select {
+      width: 110px; padding: 5px 8px; border-radius: 6px;
+      background: rgba(40,60,100,.4); border: 1px solid rgba(90,140,220,.35); color: #fff;
+    }
   </style>
 </head>
 <body>
@@ -164,7 +207,10 @@
       <button data-diff="hard" data-i18n="diff.hard">困难</button>
     </div>
     <button id="startBtn" class="primary" data-i18n="menu.start">开始游戏</button>
-    <button id="menuSettingsBtn" data-i18n="menu.settings">设置</button>
+    <div class="menu-aux">
+      <button id="menuSkinBtn" data-i18n="menu.skin">皮肤</button>
+      <button id="menuSettingsBtn" data-i18n="menu.settings">设置</button>
+    </div>
   </div>
 
   <!-- 死亡菜单 -->
@@ -221,6 +267,47 @@
         </div>
       </div>
       <button id="settingsClose" class="setbtn" data-i18n="settings.close" style="align-self:center;">关闭</button>
+    </div>
+  </div>
+
+  <!-- 皮肤面板 -->
+  <div id="skins" class="overlay hidden">
+    <h1 data-i18n="skin.title">战机皮肤</h1>
+    <div class="sub" data-i18n="skin.tip">选择预设，或新建自己的涂装（相当于内置 Mod）</div>
+    <div class="skinwrap">
+      <div id="skinGrid" class="skingrid"></div>
+    </div>
+    <div class="menu-aux">
+      <button id="newSkinBtn" class="primary" data-i18n="skin.create">新建皮肤</button>
+      <button id="skinsClose" data-i18n="skin.close">返回</button>
+    </div>
+  </div>
+
+  <!-- 皮肤编辑器 -->
+  <div id="skinEditor" class="overlay hidden">
+    <h1 data-i18n="skin.editor">设计皮肤</h1>
+    <div class="editorbox">
+      <div class="edpreview"><canvas id="edPrev" width="170" height="210"></canvas></div>
+      <div class="edform">
+        <div class="edrow"><label data-i18n="skin.name">名称</label><input id="edName" type="text" maxlength="8" placeholder="我的战机"></div>
+        <div class="edrow"><label data-i18n="skin.body">机身</label><input id="edBody" type="color" value="#1fa8e6"></div>
+        <div class="edrow"><label data-i18n="skin.accent">描边高光</label><input id="edAccent" type="color" value="#bff7ff"></div>
+        <div class="edrow"><label data-i18n="skin.engine">尾焰</label><input id="edEngine" type="color" value="#ff8a3c"></div>
+        <div class="edrow"><label data-i18n="skin.wing">机翼</label><input id="edWing" type="color" value="#0d5e96"></div>
+        <div class="edrow"><label data-i18n="skin.trail">弹道</label><input id="edTrail" type="color" value="#7df9ff"></div>
+        <div class="edrow"><label data-i18n="skin.pattern">涂装</label>
+          <select id="edPattern">
+            <option value="plain" data-i18n="skin.pattern.plain">纯色</option>
+            <option value="stripe" data-i18n="skin.pattern.stripe">条纹</option>
+            <option value="hex" data-i18n="skin.pattern.hex">蜂巢</option>
+            <option value="carbon" data-i18n="skin.pattern.carbon">碳纤</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="menu-aux">
+      <button id="edSave" class="primary" data-i18n="skin.save">保存皮肤</button>
+      <button id="edCancel" data-i18n="skin.cancel">取消</button>
     </div>
   </div>
 

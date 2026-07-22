@@ -44,6 +44,52 @@ window.DJFE = window.DJFE || {};
     return top;
   };
 
+  // ---- 战机皮肤（预设 + 自由设计 Mod，localStorage 持久化） ----
+  // 字段：body 机身 / accent 描边高光 / engine 尾焰 / wing 机翼 / trail 弹道 / pattern 涂装
+  const SKIN_KEY = 'djfe_skins';
+  const SKIN_PRESETS = [
+    { id: 'cyan_knight',    name: '苍蓝骑士', body: '#1fa8e6', accent: '#bff7ff', engine: '#ff8a3c', wing: '#0d5e96', trail: '#7df9ff', pattern: 'plain' },
+    { id: 'crimson_falcon', name: '烈焰红隼', body: '#e63b3b', accent: '#ffd2a0', engine: '#ffd23c', wing: '#8a1f1f', trail: '#ff7a4a', pattern: 'stripe' },
+    { id: 'emerald',        name: '翡翠游隼', body: '#27c46b', accent: '#d6ffe6', engine: '#9bff5b', wing: '#0f7a45', trail: '#7dff9b', pattern: 'plain' },
+    { id: 'violet',         name: '紫电惊鸿', body: '#9b4dff', accent: '#f0d6ff', engine: '#ff5bd0', wing: '#5a1f96', trail: '#c79bff', pattern: 'hex' },
+    { id: 'stealth',        name: '暗夜幽灵', body: '#2a3550', accent: '#36e0ff', engine: '#36e0ff', wing: '#101626', trail: '#36e0ff', pattern: 'carbon' },
+    { id: 'golden',         name: '黄金圣翼', body: '#f0b400', accent: '#fff3c0', engine: '#ff9b2c', wing: '#a06f00', trail: '#ffd86b', pattern: 'stripe' },
+  ];
+  let skinState = lsGet(SKIN_KEY, { custom: [], selected: 'cyan_knight' });
+  if (!skinState || typeof skinState !== 'object') skinState = { custom: [], selected: 'cyan_knight' };
+  if (!Array.isArray(skinState.custom)) skinState.custom = [];
+  function findSkin(id) {
+    if (!id) return null;
+    const p = SKIN_PRESETS.find(s => s.id === id);
+    if (p) return p;
+    return skinState.custom.find(s => s.id === id) || null;
+  }
+  DJFE.skins = {
+    presets: SKIN_PRESETS,
+    list() { return SKIN_PRESETS.concat(skinState.custom); },
+    isPreset(id) { return !!SKIN_PRESETS.find(s => s.id === id); },
+    isCustom(id) { return !!skinState.custom.find(s => s.id === id); },
+    current() { return findSkin(skinState.selected) || SKIN_PRESETS[0]; },
+    currentId() { return (findSkin(skinState.selected) ? skinState.selected : 'cyan_knight'); },
+    select(id) {
+      if (findSkin(id)) { skinState.selected = id; lsSet(SKIN_KEY, skinState); }
+      return this.current();
+    },
+    saveCustom(skin) {
+      const id = 'c_' + Date.now().toString(36);
+      const rec = Object.assign({ id, custom: true }, skin);
+      skinState.custom.push(rec);
+      skinState.selected = id;
+      lsSet(SKIN_KEY, skinState);
+      return rec;
+    },
+    deleteCustom(id) {
+      skinState.custom = skinState.custom.filter(s => s.id !== id);
+      if (skinState.selected === id) skinState.selected = 'cyan_knight';
+      lsSet(SKIN_KEY, skinState);
+    },
+  };
+
   // ---- 碰撞工具 ----
   DJFE.hit = (ax, ay, ar, bx, by, br) => {
     const dx = ax - bx, dy = ay - by;

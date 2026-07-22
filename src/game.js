@@ -596,21 +596,24 @@ window.DJFE = window.DJFE || {};
     if (game.shake > 0.3) {
       ctx.translate((Math.random() - 0.5) * game.shake, (Math.random() - 0.5) * game.shake);
     }
+    // 当前皮肤（菜单里改了立即生效）
+    game.skin = (DJFE.skins ? DJFE.skins.current() : (game.skin || { trail: '#7df9ff' }));
     const stg = STAGES[game.stage - 1] || STAGES[0];
     drawBackground(now);
 
-    // 玩家弹：发光能量束（芯 + 辉光 + 速度拖尾）
+    // 玩家弹：发光能量束（芯 + 辉光 + 速度拖尾，颜色随皮肤弹道色）
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
+    const tr = game.skin && game.skin.trail ? game.skin.trail : '#7df9ff';
     game.bullets.forEach(b => {
       const sp = Math.abs(b.vy || 11);
       const len = 9 + sp;
       const grad = ctx.createLinearGradient(b.x, b.y + len, b.x, b.y - len * 0.4);
-      grad.addColorStop(0, 'rgba(120,240,255,0)');
-      grad.addColorStop(0.5, 'rgba(140,245,255,0.85)');
+      grad.addColorStop(0, hexA(tr, 0));
+      grad.addColorStop(0.5, hexA(tr, 0.85));
       grad.addColorStop(1, '#eaffff');
       ctx.fillStyle = grad;
-      ctx.shadowColor = '#7df9ff'; ctx.shadowBlur = 10;
+      ctx.shadowColor = tr; ctx.shadowBlur = 10;
       ctx.beginPath();
       ctx.moveTo(b.x - b.r * 0.7, b.y + len);
       ctx.lineTo(b.x + b.r * 0.7, b.y + len);
