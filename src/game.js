@@ -92,6 +92,36 @@ window.DJFE = window.DJFE || {};
       ctx.fillRect(0, 0, W, H);
     }
     ctx.restore();
+    // 远景天体（每关 accent 色，缓慢漂移）
+    const planetR = Math.min(W, H) * 0.34;
+    const pxc = W * 0.80 + Math.sin(now / 16000) * 24;
+    const pyc = H * 0.20 + Math.cos(now / 19000) * 18;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    const pg = ctx.createRadialGradient(pxc, pyc, planetR * 0.2, pxc, pyc, planetR);
+    pg.addColorStop(0, hexA(stg.accent, 0.16));
+    pg.addColorStop(0.7, hexA(stg.accent, 0.05));
+    pg.addColorStop(1, hexA(stg.accent, 0));
+    ctx.fillStyle = pg;
+    ctx.beginPath(); ctx.arc(pxc, pyc, planetR, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+    const bg2 = ctx.createRadialGradient(pxc - planetR * 0.3, pyc - planetR * 0.3, planetR * 0.1, pxc, pyc, planetR * 0.62);
+    bg2.addColorStop(0, shade(stg.accent, -0.5));
+    bg2.addColorStop(0.85, shade(stg.accent, -0.82));
+    bg2.addColorStop(1, shade(stg.accent, -0.95));
+    ctx.fillStyle = bg2;
+    ctx.beginPath(); ctx.arc(pxc, pyc, planetR * 0.62, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = hexA(stg.accent, 0.45); ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(pxc, pyc, planetR * 0.62, 0, Math.PI * 2); ctx.stroke();
+    // 底部地平线辉光
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    const hg = ctx.createLinearGradient(0, H, 0, H * 0.68);
+    hg.addColorStop(0, hexA(stg.accent, 0.20));
+    hg.addColorStop(1, hexA(stg.accent, 0));
+    ctx.fillStyle = hg;
+    ctx.fillRect(0, H * 0.68, W, H * 0.32);
+    ctx.restore();
     // 视差星点
     for (const s of stars) {
       s.y += s.sp;
@@ -248,11 +278,13 @@ window.DJFE = window.DJFE || {};
     }
   }
   function onBossKilled(b) {
-    for (let i = 0; i < 48; i++) {
-      explode(b.x + (Math.random() - 0.5) * b.w, b.y + (Math.random() - 0.5) * b.h, 30);
+    for (let i = 0; i < 60; i++) {
+      explode(b.x + (Math.random() - 0.5) * b.w, b.y + (Math.random() - 0.5) * b.h, 30 + Math.random() * 30);
     }
-    addRing(b.x, b.y, 30, Math.max(W, H) * 0.5);
-    game.shake = 30;
+    addRing(b.x, b.y, 40, Math.max(W, H) * 0.6);
+    addRing(b.x, b.y, 50, Math.max(W, H) * 0.95);
+    game.shake = 42;
+    game.flash = 1;
     audio.bomb();
     audio.music.setIntensity('playing');
     game.score += 600 + game.wave * 150;
@@ -392,11 +424,13 @@ window.DJFE = window.DJFE || {};
 
   // ---- 粒子 & 冲击波环 ----
   function explode(x, y, hue) {
-    for (let i = 0; i < 16; i++) {
+    for (let i = 0; i < 18; i++) {
       const a = Math.random() * Math.PI * 2;
-      const s = 1 + Math.random() * 4.5;
+      const s = 1 + Math.random() * 5;
       game.particles.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 1, hue });
     }
+    // 白热亮核
+    game.particles.push({ x, y, vx: 0, vy: 0, life: 1, hue: 50 });
   }
   function addRing(x, y, hue, maxR) {
     game.rings.push({ x, y, r: 8, maxR, life: 1, hue });
@@ -567,15 +601,44 @@ window.DJFE = window.DJFE || {};
     const stg = STAGES[game.stage - 1] || STAGES[0];
     drawBackground(now);
 
+    // 玩家弹：发光能量束（芯 + 辉光 + 速度拖尾）
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
     game.bullets.forEach(b => {
-      ctx.save();
+      const sp = Math.abs(b.vy || 11);
+      const len = 9 + sp;
+      const grad = ctx.createLinearGradient(b.x, b.y + len, b.x, b.y - len * 0.4);
+      grad.addColorStop(0, 'rgba(120,240,255,0)');
+      grad.addColorStop(0.5, 'rgba(140,245,255,0.85)');
+      grad.addColorStop(1, '#eaffff');
+      ctx.fillStyle = grad;
       ctx.shadowColor = '#7df9ff'; ctx.shadowBlur = 10;
-      ctx.fillStyle = '#e6fbff';
-      ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2); ctx.fill();
-      ctx.restore();
+      ctx.beginPath();
+      ctx.moveTo(b.x - b.r * 0.7, b.y + len);
+      ctx.lineTo(b.x + b.r * 0.7, b.y + len);
+      ctx.lineTo(b.x + b.r * 0.4, b.y - len * 0.4);
+      ctx.lineTo(b.x - b.r * 0.4, b.y - len * 0.4);
+      ctx.closePath(); ctx.fill();
     });
+    ctx.restore();
 
-    // 敌弹：高可见度三层（外晕 + 橙红环 + 白热核心）
+    // 敌弹：高可见度三层（外晕 + 橙红环 + 白热核心）+ 运动拖尾
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    game.ebullets.forEach(eb => {
+      const r = eb.r || 6;
+      const sp = Math.hypot(eb.vx || 0, eb.vy || 0);
+      // 拖尾
+      if (sp > 0.5) {
+        ctx.strokeStyle = 'rgba(255,120,60,0.35)';
+        ctx.lineWidth = r * 0.9;
+        ctx.beginPath();
+        ctx.moveTo(eb.x, eb.y);
+        ctx.lineTo(eb.x - (eb.vx || 0) * 2.4, eb.y - (eb.vy || 0) * 2.4);
+        ctx.stroke();
+      }
+    });
+    ctx.restore();
     game.ebullets.forEach(eb => {
       const r = eb.r || 6;
       ctx.save();
@@ -597,7 +660,7 @@ window.DJFE = window.DJFE || {};
 
     game.items.forEach(DJFE.draw.item);
     game.enemies.forEach(DJFE.draw.enemy);
-    if (game.boss) DJFE.draw.boss(game.boss, now);
+    if (game.boss) DJFE.draw.boss(game.boss, now, player);
 
     const invuln = now < player.invulnUntil;
     const blink = invuln && (Math.floor(now / 100) % 2 === 0);
@@ -607,15 +670,29 @@ window.DJFE = window.DJFE || {};
       ctx.globalAlpha = 1;
     }
 
+    // 粒子：加法混合 + 辉光 + 运动拖尾
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
     game.particles.forEach(p => {
-      ctx.save();
-      ctx.globalAlpha = Math.max(0, p.life);
-      ctx.fillStyle = `hsl(${p.hue},90%,${50 + 20 * p.life}%)`;
-      ctx.shadowColor = `hsl(${p.hue},90%,65%)`; ctx.shadowBlur = 8;
-      const sz = 2 + 3 * p.life;
+      const a = Math.max(0, p.life);
+      ctx.globalAlpha = a;
+      const col = `hsl(${p.hue},95%,${55 + 20 * a}%)`;
+      const sz = 2 + 4 * a;
+      const sp = Math.hypot(p.vx || 0, p.vy || 0);
+      if (sp > 2) {
+        ctx.strokeStyle = col;
+        ctx.lineWidth = sz * 0.8;
+        ctx.beginPath();
+        ctx.moveTo(p.x, p.y);
+        ctx.lineTo(p.x - p.vx * 1.6, p.y - p.vy * 1.6);
+        ctx.stroke();
+      }
+      ctx.fillStyle = col;
+      ctx.shadowColor = `hsl(${p.hue},95%,65%)`; ctx.shadowBlur = 10;
       ctx.fillRect(p.x - sz / 2, p.y - sz / 2, sz, sz);
-      ctx.restore();
     });
+    ctx.globalAlpha = 1;
+    ctx.restore();
 
     game.rings.forEach(rg => {
       ctx.strokeStyle = `hsla(${rg.hue},90%,68%,${rg.life * 0.8})`;
@@ -670,6 +747,13 @@ window.DJFE = window.DJFE || {};
       ctx.textAlign = 'center';
       ctx.fillText(b.name || 'BOSS', W / 2, by + bh + 13);
     }
+
+    // 电影感暗角
+    const vg = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.42, W / 2, H / 2, Math.max(W, H) * 0.78);
+    vg.addColorStop(0, 'rgba(0,0,0,0)');
+    vg.addColorStop(1, 'rgba(0,0,0,0.42)');
+    ctx.fillStyle = vg;
+    ctx.fillRect(0, 0, W, H);
 
     ctx.restore();
   }

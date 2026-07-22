@@ -13,14 +13,22 @@ window.DJFE = window.DJFE || {};
     const px = player.x, py = player.y;
     const t = player.w, hh = player.h;
 
-    // 护盾环
+    // 护盾：旋转六边形能量罩
     if (now < player.shieldUntil) {
       const pulse = 0.55 + 0.45 * Math.sin(now / 110);
-      ctx.strokeStyle = `rgba(120,255,200,${0.4 + 0.35 * pulse})`;
-      ctx.lineWidth = 3;
+      ctx.save();
+      ctx.translate(px, py);
+      ctx.rotate(now / 600);
+      ctx.strokeStyle = `rgba(120,255,200,${0.45 + 0.35 * pulse})`;
+      ctx.shadowColor = '#7dffc8'; ctx.shadowBlur = 16; ctx.lineWidth = 2.5;
       ctx.beginPath();
-      ctx.arc(px, py, t * 0.78, 0, Math.PI * 2);
-      ctx.stroke();
+      for (let i = 0; i < 6; i++) {
+        const a = i * Math.PI / 3;
+        const rx = Math.cos(a) * t * 0.8, ry = Math.sin(a) * t * 0.8;
+        if (i === 0) ctx.moveTo(rx, ry); else ctx.lineTo(rx, ry);
+      }
+      ctx.closePath(); ctx.stroke();
+      ctx.restore();
     }
 
     // 机首火光
@@ -35,7 +43,23 @@ window.DJFE = window.DJFE || {};
     ctx.save();
     ctx.translate(px, py);
 
-    // 引擎尾焰（双层脉动）
+    // 能量翼弧（additive 辉光，随引擎脉动）
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    const eng = 0.7 + 0.3 * Math.sin(now / 30);
+    ctx.strokeStyle = `rgba(90,220,255,${0.5 * eng})`;
+    ctx.lineWidth = 3; ctx.shadowColor = '#36e0ff'; ctx.shadowBlur = 14;
+    ctx.beginPath();
+    ctx.moveTo(-t * 0.22, hh * 0.05);
+    ctx.quadraticCurveTo(-t * 0.85, hh * 0.2, -t * 0.7, hh * 0.55);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(t * 0.22, hh * 0.05);
+    ctx.quadraticCurveTo(t * 0.85, hh * 0.2, t * 0.7, hh * 0.55);
+    ctx.stroke();
+    ctx.restore();
+
+    // 引擎尾焰（双层脉动 + 外辉光）
     const flame = 12 + Math.sin(now / 35) * 5;
     const fg = ctx.createLinearGradient(0, hh * 0.30, 0, hh * 0.30 + flame + 14);
     fg.addColorStop(0, 'rgba(190,240,255,0.98)');
@@ -207,12 +231,20 @@ window.DJFE = window.DJFE || {};
     ctx.restore();
   }
 
-  // ---- 道具（发光菱形 + 旋转环 + 字母） ----
+  // ---- 道具（外光晕 + 发光菱形 + 旋转环 + 字母） ----
   function drawItem(it) {
     ctx.save();
     ctx.translate(it.x, it.y);
     const col = `hsl(${it.hue},85%,62%)`;
     const rot = (it.x + it.y) * 0.02 + Date.now() * 0.003;
+    const pulse = 0.7 + 0.3 * Math.sin(Date.now() / 200);
+    // 外光晕
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.shadowColor = col; ctx.shadowBlur = 18 * pulse;
+    ctx.fillStyle = `hsla(${it.hue},90%,60%,0.22)`;
+    ctx.beginPath(); ctx.arc(0, 0, it.r + 6, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
     ctx.rotate(rot);
     ctx.shadowColor = col; ctx.shadowBlur = 14;
     ctx.fillStyle = col;
@@ -228,8 +260,8 @@ window.DJFE = window.DJFE || {};
     ctx.restore();
   }
 
-  // ---- Boss（战舰造型：装甲舰体 + 双翼炮塔 + 脉动核心，按关卡色相） ----
-  function drawBoss(b, now) {
+  // ---- Boss（战舰造型：旋转能量冠 + 装甲舰体 + 双翼炮塔 + 脉动用核心 + 追踪眼，按关卡色相） ----
+  function drawBoss(b, now, player) {
     const s = b.w;
     ctx.save();
     ctx.translate(b.x, b.y);
@@ -238,6 +270,16 @@ window.DJFE = window.DJFE || {};
     const col = `hsl(${bh},85%,60%)`;
     const lite = `hsl(${bh},90%,72%)`;
     const dark = `hsl(${bh},80%,30%)`;
+
+    // 旋转能量冠（虚线环）
+    ctx.save();
+    ctx.rotate((now || 0) / 1400);
+    ctx.strokeStyle = `hsla(${bh},90%,75%,0.5)`;
+    ctx.shadowColor = `hsl(${bh},90%,60%)`; ctx.shadowBlur = 12;
+    ctx.lineWidth = 3; ctx.setLineDash([10, 14]);
+    ctx.beginPath(); ctx.arc(0, -b.h * 0.02, s * 0.62, 0, Math.PI * 2); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.restore();
 
     // 外翼
     ctx.fillStyle = dark;
@@ -274,17 +316,32 @@ window.DJFE = window.DJFE || {};
     ctx.fillStyle = dark;
     ctx.fillRect(-s * 0.06, -b.h * 0.62, s * 0.12, b.h * 0.14);
 
-    // 核心（脉动，亮度随血量）
+    // 充能预告（即将开火时核心变亮）
+    const charge = Math.max(0, Math.min(1, (b.fireT || 0) / (b.fireGap || 1)));
+    const chargeGlow = charge > 0.8 ? (charge - 0.8) / 0.2 : 0;
+
+    // 核心（脉动，亮度随血量 + 充能）
     const pulse = 0.6 + 0.4 * Math.sin((now || 0) / 180);
-    const core = `hsl(${bh},95%,${48 + 22 * r * pulse}%)`;
+    const coreL = 48 + 22 * r * pulse + 30 * chargeGlow;
+    const core = `hsl(${bh},95%,${coreL}%)`;
     ctx.fillStyle = core;
-    ctx.shadowColor = core; ctx.shadowBlur = 18 + 10 * pulse;
-    ctx.beginPath(); ctx.arc(0, -b.h * 0.02, s * (0.13 + 0.03 * pulse), 0, Math.PI * 2); ctx.fill();
+    ctx.shadowColor = core; ctx.shadowBlur = 18 + 10 * pulse + 20 * chargeGlow;
+    ctx.beginPath(); ctx.arc(0, -b.h * 0.02, s * (0.13 + 0.03 * pulse + 0.05 * chargeGlow), 0, Math.PI * 2); ctx.fill();
     ctx.shadowBlur = 0;
     // 核心散热纹
     ctx.strokeStyle = `hsla(${bh},90%,85%,${0.5 + 0.4 * pulse})`;
     ctx.lineWidth = 2;
     ctx.beginPath(); ctx.arc(0, -b.h * 0.02, s * 0.20, 0, Math.PI * 2); ctx.stroke();
+
+    // 追踪眼（朝向玩家）
+    if (player) {
+      const ea = Math.atan2(player.y - b.y, player.x - b.x);
+      const ex = Math.cos(ea) * s * 0.30, ey = Math.sin(ea) * s * 0.12 - b.h * 0.02;
+      ctx.fillStyle = `hsla(${bh},100%,85%,0.9)`;
+      ctx.shadowColor = core; ctx.shadowBlur = 10;
+      ctx.beginPath(); ctx.arc(ex, ey, s * 0.05, 0, Math.PI * 2); ctx.fill();
+      ctx.shadowBlur = 0;
+    }
 
     ctx.restore();
   }
