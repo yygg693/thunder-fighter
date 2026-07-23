@@ -91,6 +91,71 @@
       background: transparent; color: #9fb3d1;
       border: 1px solid rgba(120,150,200,.3); cursor: pointer;
     }
+    .overlay button:not(.primary):hover { border-color: rgba(54,224,255,.55); color: #cfeaff; }
+
+    /* ---- 开始菜单专属美化 ---- */
+    #menu { gap: 20px; }
+    .menu-hero { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+    .hero-badge {
+      font-size: 11px; letter-spacing: 6px; color: #6fa8d8;
+      padding: 4px 16px; border: 1px solid rgba(111,168,216,.35); border-radius: 999px;
+      background: rgba(20,40,80,.35); user-select: none;
+    }
+    #menu h1 {
+      font-size: 64px; letter-spacing: 8px; font-weight: 900;
+      background: linear-gradient(180deg, #eafcff 8%, #58e6ff 45%, #1f8fe6 92%);
+      -webkit-background-clip: text; background-clip: text;
+      -webkit-text-fill-color: transparent; color: transparent;
+      filter: drop-shadow(0 0 22px rgba(54,224,255,.55));
+      animation: heroGlow 2.8s ease-in-out infinite;
+    }
+    @keyframes heroGlow {
+      0%, 100% { filter: drop-shadow(0 0 16px rgba(54,224,255,.45)); }
+      50%      { filter: drop-shadow(0 0 34px rgba(54,224,255,.85)); }
+    }
+    #menu .sub {
+      display: flex; align-items: center; gap: 14px;
+      color: #7fa0c8; font-size: 14px; letter-spacing: 6px;
+    }
+    #menu .sub::before, #menu .sub::after {
+      content: ''; width: 56px; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(127,160,200,.7));
+    }
+    #menu .sub::after { transform: scaleX(-1); }
+    .menu-card {
+      display: flex; flex-direction: column; align-items: center; gap: 14px;
+      width: min(400px, 92vw); padding: 20px 26px 22px;
+      background: linear-gradient(180deg, rgba(16,28,54,.72), rgba(8,14,30,.78));
+      border: 1px solid rgba(80,140,220,.3); border-radius: 18px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.06), inset 0 0 40px rgba(20,60,120,.18),
+                  0 14px 44px rgba(0,0,0,.5);
+      backdrop-filter: blur(6px);
+      position: relative;
+    }
+    .menu-card::before {
+      content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+      width: 60%; height: 2px; border-radius: 2px;
+      background: linear-gradient(90deg, transparent, rgba(54,224,255,.8), transparent);
+    }
+    .menu-card .leaderboard { width: 100%; background: rgba(6,12,26,.5); }
+    .menu-card .howto { font-size: 12.5px; }
+    .menu-card .best { margin-top: 0; }
+    #menu button.primary {
+      width: 100%; padding: 13px 0; font-size: 19px; letter-spacing: 6px;
+      position: relative; overflow: hidden;
+    }
+    #menu button.primary::after {
+      content: ''; position: absolute; top: 0; left: -70%;
+      width: 45%; height: 100%; transform: skewX(-22deg);
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,.5), transparent);
+      animation: btnSheen 3.2s ease-in-out infinite;
+    }
+    @keyframes btnSheen {
+      0%, 55% { left: -70%; }
+      85%, 100% { left: 130%; }
+    }
+    #menu .menu-aux { width: 100%; }
+    #menu .menu-aux button { flex: 1; margin-top: 0; }
 
     /* 排行榜 */
     .leaderboard {
@@ -225,26 +290,31 @@
 
   <!-- 开始菜单 -->
   <div id="menu" class="overlay">
-    <h1 data-i18n="menu.title">打飞机</h1>
-    <div class="sub" data-i18n="menu.sub">FIGHTER&nbsp;SHOOTER</div>
-    <div class="best"><span data-i18n="menu.best">历史最高</span> <b id="bestMenu">0</b></div>
-    <div class="leaderboard">
-      <div class="lbtitle" data-i18n="menu.lb">本地排行榜</div>
-      <div id="menuLB"></div>
+    <div class="menu-hero">
+      <div class="hero-badge" aria-hidden="true">◆ ARCADE ◆</div>
+      <h1 data-i18n="menu.title">打飞机</h1>
+      <div class="sub" data-i18n="menu.sub">FIGHTER&nbsp;SHOOTER</div>
     </div>
-    <div class="howto" data-i18n="menu.howto">
-      手指在触摸板上移动 → 战机跟到对应位置，自动开火<br>
-      点击屏幕放炸弹清屏 · WASD / 方向键也能操控 · ESC 暂停
-    </div>
-    <div class="diff">
-      <button data-diff="easy" data-i18n="diff.easy">简单</button>
-      <button data-diff="normal" class="sel" data-i18n="diff.normal">普通</button>
-      <button data-diff="hard" data-i18n="diff.hard">困难</button>
-    </div>
-    <button id="startBtn" class="primary" data-i18n="menu.start">开始游戏</button>
-    <div class="menu-aux">
-      <button id="menuSkinBtn" data-i18n="menu.skin">皮肤</button>
-      <button id="menuSettingsBtn" data-i18n="menu.settings">设置</button>
+    <div class="menu-card">
+      <div class="best"><span data-i18n="menu.best">历史最高</span> <b id="bestMenu">0</b></div>
+      <div class="leaderboard">
+        <div class="lbtitle" data-i18n="menu.lb">本地排行榜</div>
+        <div id="menuLB"></div>
+      </div>
+      <div class="howto" data-i18n="menu.howto">
+        手指在触摸板上移动 → 战机跟到对应位置，自动开火<br>
+        点击屏幕放炸弹清屏 · WASD / 方向键也能操控 · ESC 暂停
+      </div>
+      <div class="diff">
+        <button data-diff="easy" data-i18n="diff.easy">简单</button>
+        <button data-diff="normal" class="sel" data-i18n="diff.normal">普通</button>
+        <button data-diff="hard" data-i18n="diff.hard">困难</button>
+      </div>
+      <button id="startBtn" class="primary" data-i18n="menu.start">开始游戏</button>
+      <div class="menu-aux">
+        <button id="menuSkinBtn" data-i18n="menu.skin">皮肤</button>
+        <button id="menuSettingsBtn" data-i18n="menu.settings">设置</button>
+      </div>
     </div>
   </div>
 
