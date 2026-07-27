@@ -52,7 +52,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
       - name: Sync web assets into Android project
-        run: npx cap sync android
+        run: |
+          node scripts/sync-web.js
+          npx cap sync android
       - name: Build debug APK
         working-directory: android
         run: |
