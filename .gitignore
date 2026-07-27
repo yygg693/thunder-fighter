@@ -3,6 +3,7 @@ desktop/node_modules/
 desktop/dist/
 dist/
 release/
+www/
 *.exe
 *.log
 .DS_Store

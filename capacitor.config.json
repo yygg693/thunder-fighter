@@ -1,0 +1,9 @@
+{
+  "appId": "com.dafeiji.game",
+  "appName": "打飞机",
+  "webDir": "www",
+  "backgroundColor": "#05060f",
+  "android": {
+    "allowMixedContent": false
+  }
+}

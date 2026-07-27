@@ -204,6 +204,11 @@ window.DJFE = window.DJFE || {};
     KeyW: 'up', ArrowUp: 'up', KeyS: 'down', ArrowDown: 'down',
     KeyA: 'left', ArrowLeft: 'left', KeyD: 'right', ArrowRight: 'right',
   };
+  // 触屏设备检测（用于 UI 与输入策略分流）
+  const isTouch = (window.matchMedia && window.matchMedia('(pointer: coarse)').matches)
+    || ('ontouchstart' in window);
+  DJFE.isTouch = isTouch;
+
   function onPointerMove(e) {
     const r = canvas.getBoundingClientRect();
     pointer.x = e.clientX - r.left;
@@ -214,6 +219,8 @@ window.DJFE = window.DJFE || {};
   canvas.addEventListener('pointerdown', (e) => {
     onPointerMove(e);
     initAudio();                       // 用户手势解锁音频
+    // 触屏：手指按下=开始操控，不放炸弹（炸弹走 #btnBomb 按钮，避免每次触摸都误触）
+    if (e.pointerType === 'touch') return;
     if (DJFE._onPointerDown) DJFE._onPointerDown();
   });
   window.addEventListener('keydown', (e) => {

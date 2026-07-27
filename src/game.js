@@ -25,6 +25,8 @@ window.DJFE = window.DJFE || {};
   const bestGOEl = document.getElementById('bestGO');
   const sensEl = document.getElementById('sens');
   const sensValEl = document.getElementById('sensVal');
+  const touchUIEl = document.getElementById('touchUI');
+  const bombCntEl = document.getElementById('bombCnt');
 
   // ---- 状态机 ----
   const STATE = { MENU: 'menu', PLAYING: 'playing', GAMEOVER: 'gameover', PAUSED: 'paused', VICTORY: 'victory' };
@@ -135,6 +137,8 @@ window.DJFE = window.DJFE || {};
   function hide(id) { document.getElementById(id).classList.add('hidden'); }
   function setState(s) {
     game.state = s;
+    // 触屏控制层只在 PLAYING 状态显示（CSS 还需 pointer:coarse 匹配）
+    if (touchUIEl) touchUIEl.classList.toggle('ingame', s === STATE.PLAYING);
     if (s === STATE.MENU) {
       refreshBestUI(); refreshLeaderboard();
       audio.music.setIntensity('menu');
@@ -581,6 +585,7 @@ window.DJFE = window.DJFE || {};
       scoreEl.textContent = game.score;
       livesEl.textContent = game.lives;
       bombsEl.textContent = game.bombs;
+      if (bombCntEl) bombCntEl.textContent = game.bombs;
       waveEl.textContent = game.wave;
       powerEl.textContent = game.power;
       stageEl.textContent = game.stage;
@@ -772,6 +777,11 @@ window.DJFE = window.DJFE || {};
     setDifficulty(d) { selectedDiff = d; },
     toMenu() { setState(STATE.MENU); },
     resume() { setState(STATE.PLAYING); },
+    bomb() { if (game.state === STATE.PLAYING) triggerBomb(); },
+    togglePause() {
+      if (game.state === STATE.PLAYING) setState(STATE.PAUSED);
+      else if (game.state === STATE.PAUSED) setState(STATE.PLAYING);
+    },
     setMute,
   };
 

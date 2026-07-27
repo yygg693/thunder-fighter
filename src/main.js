@@ -67,6 +67,15 @@
     document.documentElement.lang = (lang === 'en') ? 'en' : 'zh-CN';
   }
 
+  // ---- 触屏适配：操控提示换文案 + 触屏按钮接线 ----
+  if (DJFE.isTouch) {
+    I18N.zh['menu.howto'] = '手指在屏幕上滑动 → 战机跟随，自动开火<br>右下角 💣 按钮放炸弹清屏 · 右上角 ⏸ 暂停';
+    I18N.en['menu.howto'] = 'Drag on screen → ship follows, auto-fire<br>Tap 💣 (bottom-right) to bomb · ⏸ (top-right) to pause';
+  }
+  const btnBomb = $('btnBomb'), btnPause = $('btnPause');
+  if (btnBomb) btnBomb.addEventListener('click', (e) => { e.preventDefault(); DJFE.Game.bomb(); });
+  if (btnPause) btnPause.addEventListener('click', (e) => { e.preventDefault(); DJFE.Game.togglePause(); });
+
   // ---- 难度按钮 ----
   document.querySelectorAll('#menu .diff button').forEach((b) => {
     b.addEventListener('click', () => {
