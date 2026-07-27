@@ -502,10 +502,9 @@ window.DJFE = window.DJFE || {};
           }
         }
       });
-      game.enemies = game.enemies.filter(en => {
-        if (en.y > H + 40) { loseLife(now); return false; }
-        return true;
-      });
+      // 漏怪（敌机飞出底部）直接消失，不扣命——惩罚只靠撞弹/撞机。
+      // （原设计漏怪扣命过于硬核，与"零门槛"定位不符）
+      game.enemies = game.enemies.filter(en => en.y <= H + 40);
 
       // 玩家子弹 vs 敌机
       game.bullets.forEach(b => {
@@ -740,18 +739,56 @@ window.DJFE = window.DJFE || {};
 
     if (game.boss) {
       const b = game.boss;
-      const bw = Math.min(W * 0.6, 520), bx = (W - bw) / 2, by = 14, bh = 12;
+      const bw = Math.min(W * 0.62, 540), bx = (W - bw) / 2, by = 16, bh = 13;
       const r = Math.max(0, b.hp / b.maxHp);
-      ctx.fillStyle = 'rgba(0,0,0,.45)';
-      ctx.fillRect(bx - 2, by - 2, bw + 4, bh + 4);
-      ctx.fillStyle = 'rgba(120,20,20,.85)';
-      ctx.fillRect(bx, by, bw, bh);
-      ctx.fillStyle = r > 0.3 ? '#ff5b5b' : '#ffd24a';
-      ctx.fillRect(bx, by, bw * r, bh);
-      ctx.fillStyle = '#ffd86b';
-      ctx.font = '12px -apple-system, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText(b.name || 'BOSS', W / 2, by + bh + 13);
+      const bh2 = (b.hue != null) ? b.hue : 10;
+      const rr = (x, y, w, h, rad) => {
+        rad = Math.min(rad, h / 2, w / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + rad, y);
+        ctx.arcTo(x + w, y, x + w, y + h, rad);
+        ctx.arcTo(x + w, y + h, x, y + h, rad);
+        ctx.arcTo(x, y + h, x, y, rad);
+        ctx.arcTo(x, y, x + w, y, rad);
+        ctx.closePath();
+      };
+      // 底板（圆角 + 玻璃底）
+      ctx.save();
+      ctx.shadowColor = 'rgba(0,0,0,.5)'; ctx.shadowBlur = 10;
+      ctx.fillStyle = 'rgba(6,10,24,.62)';
+      rr(bx - 4, by - 4, bw + 8, bh + 8, 9); ctx.fill();
+      ctx.restore();
+      ctx.strokeStyle = 'rgba(120,160,220,.35)'; ctx.lineWidth = 1;
+      rr(bx - 4, by - 4, bw + 8, bh + 8, 9); ctx.stroke();
+      // 空血槽
+      ctx.fillStyle = `hsla(${bh2},45%,18%,.85)`;
+      rr(bx, by, bw, bh, 6); ctx.fill();
+      // 血量（按关卡色相渐变 + 发光；低血量转警示金）
+      if (r > 0) {
+        const low = r <= 0.3;
+        const h1 = low ? 45 : bh2, s1 = low ? 95 : 85;
+        const fg = ctx.createLinearGradient(bx, 0, bx + bw, 0);
+        fg.addColorStop(0, `hsl(${h1},${s1}%,72%)`);
+        fg.addColorStop(1, `hsl(${h1},${s1}%,48%)`);
+        ctx.save();
+        ctx.shadowColor = `hsla(${h1},95%,60%,.8)`; ctx.shadowBlur = 12;
+        ctx.fillStyle = fg;
+        rr(bx, by, Math.max(bh, bw * r), bh, 6); ctx.fill();
+        ctx.restore();
+        // 顶部高光条
+        ctx.fillStyle = 'rgba(255,255,255,.28)';
+        rr(bx + 1, by + 1, Math.max(0, bw * r - 2), bh * 0.4, 4); ctx.fill();
+      }
+      // Boss 名（描边字 + 发光）
+      ctx.save();
+      ctx.font = 'bold 13px -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+      ctx.shadowColor = `hsla(${bh2},90%,60%,.9)`; ctx.shadowBlur = 8;
+      ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(4,8,20,.85)';
+      ctx.strokeText(b.name || 'BOSS', W / 2, by + bh + 8);
+      ctx.fillStyle = '#ffe9a8';
+      ctx.fillText(b.name || 'BOSS', W / 2, by + bh + 8);
+      ctx.restore();
     }
 
     // 电影感暗角（边缘压暗，中心保持通透，menu 不影响文字）

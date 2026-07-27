@@ -94,6 +94,8 @@
   $('victoryRetry').addEventListener('click', () => DJFE.Game.start());
   $('victoryMenu').addEventListener('click', () => DJFE.Game.toMenu());
   $('menuSettingsBtn').addEventListener('click', () => settingsEl.classList.remove('hidden'));
+  const pauseSettingsBtn = $('pauseSettingsBtn');
+  if (pauseSettingsBtn) pauseSettingsBtn.addEventListener('click', () => settingsEl.classList.remove('hidden'));
 
   // 静音切换
   const muteBtn = $('muteBtn');

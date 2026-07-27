@@ -28,8 +28,16 @@
       color: #8fe3ff; font-size: 14px; line-height: 1.6;
       text-shadow: 0 0 6px rgba(0,180,255,.6);
       pointer-events: none; user-select: none;
+      background: rgba(8,14,30,.5);
+      border: 1px solid rgba(80,140,220,.22); border-radius: 10px;
+      padding: 7px 12px;
+      backdrop-filter: blur(4px);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.05), 0 4px 16px rgba(0,0,0,.3);
     }
-    #hud b { color: #ffd86b; }
+    #hud b {
+      color: #ffd86b; font-variant-numeric: tabular-nums;
+      text-shadow: 0 0 8px rgba(255,216,107,.45);
+    }
     #panel {
       position: fixed; top: 10px; right: 14px;
       color: #9fb3d1; font-size: 12px; user-select: none;
@@ -59,12 +67,75 @@
       background: rgba(5,6,15,.82);
       backdrop-filter: blur(2px);
       text-align: center;
+      animation: ovFade .28s ease-out;
     }
+    @keyframes ovFade { from { opacity: 0; } to { opacity: 1; } }
     .overlay.hidden { display: none; }
     .overlay h1 {
-      font-size: 56px; letter-spacing: 4px;
-      color: #36e0ff; text-shadow: 0 0 24px rgba(54,224,255,.7);
+      font-size: 56px; letter-spacing: 4px; font-weight: 900;
+      background: linear-gradient(180deg, #eafcff 8%, #58e6ff 45%, #1f8fe6 92%);
+      -webkit-background-clip: text; background-clip: text;
+      -webkit-text-fill-color: transparent; color: transparent;
+      filter: drop-shadow(0 0 20px rgba(54,224,255,.5));
     }
+    /* 各浮层标题色相 */
+    #gameover h1 {
+      background: linear-gradient(180deg, #fff0e8 8%, #ff8a5c 45%, #e63b3b 92%);
+      filter: drop-shadow(0 0 20px rgba(255,110,80,.55));
+    }
+    #victory h1 {
+      background: linear-gradient(180deg, #fffbe0 8%, #ffd86b 45%, #f0a400 92%);
+      filter: drop-shadow(0 0 24px rgba(255,200,80,.6));
+    }
+    #pause h1 {
+      background: linear-gradient(180deg, #e8f4ff 8%, #9bc8ff 45%, #4a7de6 92%);
+      filter: drop-shadow(0 0 18px rgba(120,160,255,.5));
+    }
+    /* 通用浮层卡片（与 menu-card 同语言） */
+    .panel-card {
+      display: flex; flex-direction: column; align-items: center; gap: 13px;
+      width: min(380px, 92vw); padding: 20px 26px 22px;
+      background: linear-gradient(180deg, rgba(16,28,54,.72), rgba(8,14,30,.78));
+      border: 1px solid rgba(80,140,220,.3); border-radius: 18px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.06), inset 0 0 40px rgba(20,60,120,.18),
+                  0 14px 44px rgba(0,0,0,.5);
+      backdrop-filter: blur(6px);
+      position: relative;
+      animation: cardIn .34s cubic-bezier(.2,.9,.3,1.15);
+    }
+    @keyframes cardIn { from { opacity: 0; transform: translateY(14px) scale(.97); } to { opacity: 1; transform: none; } }
+    .panel-card::before {
+      content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+      width: 60%; height: 2px; border-radius: 2px;
+      background: linear-gradient(90deg, transparent, rgba(54,224,255,.8), transparent);
+    }
+    #victory .panel-card::before { background: linear-gradient(90deg, transparent, rgba(255,216,107,.85), transparent); }
+    #gameover .panel-card::before { background: linear-gradient(90deg, transparent, rgba(255,110,80,.8), transparent); }
+    .panel-card > * { animation: itemIn .3s ease-out backwards; }
+    .panel-card > *:nth-child(1) { animation-delay: .05s; }
+    .panel-card > *:nth-child(2) { animation-delay: .1s; }
+    .panel-card > *:nth-child(3) { animation-delay: .15s; }
+    .panel-card > *:nth-child(4) { animation-delay: .2s; }
+    .panel-card > *:nth-child(5) { animation-delay: .25s; }
+    .panel-card > *:nth-child(6) { animation-delay: .3s; }
+    @keyframes itemIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+    /* 大分数 */
+    .score-label { color: #8fa6c8; font-size: 13px; letter-spacing: 3px; }
+    .bigscore {
+      font-size: 52px; font-weight: 900; letter-spacing: 2px; line-height: 1.1;
+      font-variant-numeric: tabular-nums;
+      background: linear-gradient(180deg, #ffffff 15%, #8fe3ff 60%, #36a0e6 95%);
+      -webkit-background-clip: text; background-clip: text;
+      -webkit-text-fill-color: transparent; color: transparent;
+      filter: drop-shadow(0 0 18px rgba(54,224,255,.5));
+    }
+    #victory .bigscore {
+      background: linear-gradient(180deg, #fffbe8 15%, #ffd86b 60%, #e69500 95%);
+      filter: drop-shadow(0 0 18px rgba(255,200,80,.55));
+    }
+    .panel-card .leaderboard { width: 100%; background: rgba(6,12,26,.5); }
+    .panel-card button.primary { width: 100%; margin-top: 2px; }
+    .panel-card button:not(.primary) { margin-top: 0; width: 100%; }
     .overlay .sub { color: #8fa6c8; font-size: 15px; letter-spacing: 2px; }
     .overlay .sub b { color: #ffd86b; font-size: 22px; }
     .overlay .best { color: #ffd86b; font-size: 16px; letter-spacing: 1px; margin-top: -6px; }
@@ -87,8 +158,17 @@
       background: linear-gradient(180deg,#39e6ff,#1f9bff); color: #04121f;
       font-weight: 700; border: none; cursor: pointer;
       box-shadow: 0 6px 20px rgba(40,160,255,.45);
+      position: relative; overflow: hidden;
+      transition: transform .12s ease, filter .12s ease;
     }
-    .overlay button.primary:hover { filter: brightness(1.08); }
+    .overlay button.primary::after {
+      content: ''; position: absolute; top: 0; left: -70%;
+      width: 45%; height: 100%; transform: skewX(-22deg);
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,.5), transparent);
+      animation: btnSheen 3.2s ease-in-out infinite;
+    }
+    .overlay button.primary:hover { filter: brightness(1.08); transform: translateY(-1px); }
+    .overlay button.primary:active { transform: translateY(1px) scale(.99); }
     .overlay button:not(.primary) {
       margin-top: 4px; padding: 9px 26px; font-size: 14px; border-radius: 8px;
       background: transparent; color: #9fb3d1;
@@ -377,31 +457,40 @@
   <!-- 死亡菜单 -->
   <div id="gameover" class="overlay hidden">
     <h1 data-i18n="gameover.title">坠机了！</h1>
-    <div class="sub"><span data-i18n="gameover.score">本局得分</span> <b id="finalScore">0</b></div>
-    <div class="best"><span data-i18n="gameover.best">历史最高</span> <b id="bestGO">0</b></div>
-    <div class="leaderboard">
-      <div class="lbtitle" data-i18n="menu.lb">本地排行榜</div>
-      <div id="goLB"></div>
+    <div class="panel-card">
+      <div class="score-label" data-i18n="gameover.score">本局得分</div>
+      <div class="bigscore" id="finalScore">0</div>
+      <div class="best"><span data-i18n="gameover.best">历史最高</span> <b id="bestGO">0</b></div>
+      <div class="leaderboard">
+        <div class="lbtitle" data-i18n="menu.lb">本地排行榜</div>
+        <div id="goLB"></div>
+      </div>
+      <button id="retryBtn" class="primary" data-i18n="retry">再来一局</button>
+      <button id="menuBtn" data-i18n="menuBtn">返回菜单</button>
     </div>
-    <button id="retryBtn" class="primary" data-i18n="retry">再来一局</button>
-    <button id="menuBtn" data-i18n="menuBtn">返回菜单</button>
   </div>
 
   <!-- 暂停菜单 -->
   <div id="pause" class="overlay hidden">
     <h1 data-i18n="pause.title">已暂停</h1>
-    <button id="resumeBtn" class="primary" data-i18n="resume">继续</button>
-    <button id="quitBtn" data-i18n="menuBtn">返回菜单</button>
+    <div class="panel-card">
+      <button id="resumeBtn" class="primary" data-i18n="resume">继续</button>
+      <button id="pauseSettingsBtn" data-i18n="menu.settings">设置</button>
+      <button id="quitBtn" data-i18n="menuBtn">返回菜单</button>
+    </div>
   </div>
 
   <!-- 通关演出 -->
   <div id="victory" class="overlay hidden">
     <h1 data-i18n="victory.title">通关！</h1>
     <div class="sub" data-i18n="victory.sub">全部关卡肃清 · 指挥官辛苦了</div>
-    <div class="best"><span data-i18n="victory.score">本局得分</span> <b id="finalScoreV">0</b></div>
-    <div class="best"><span data-i18n="victory.best">历史最高</span> <b id="bestV">0</b></div>
-    <button id="victoryRetry" class="primary" data-i18n="retry">再战一局</button>
-    <button id="victoryMenu" data-i18n="menuBtn">返回菜单</button>
+    <div class="panel-card">
+      <div class="score-label" data-i18n="victory.score">本局得分</div>
+      <div class="bigscore" id="finalScoreV">0</div>
+      <div class="best"><span data-i18n="victory.best">历史最高</span> <b id="bestV">0</b></div>
+      <button id="victoryRetry" class="primary" data-i18n="retry">再战一局</button>
+      <button id="victoryMenu" data-i18n="menuBtn">返回菜单</button>
+    </div>
   </div>
 
   <!-- 设置浮层 -->
