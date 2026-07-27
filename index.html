@@ -38,6 +38,17 @@
       color: #ffd86b; font-variant-numeric: tabular-nums;
       text-shadow: 0 0 8px rgba(255,216,107,.45);
     }
+    /* 连击（火焰色 + 脉动） */
+    #hud b.combo {
+      color: #ff9b3c;
+      text-shadow: 0 0 10px rgba(255,140,50,.8);
+      animation: comboPulse .5s ease-in-out infinite alternate;
+    }
+    @keyframes comboPulse {
+      from { transform: scale(1); }
+      to   { transform: scale(1.18); }
+    }
+    #hud .hidden { display: none; }
     #panel {
       position: fixed; top: 10px; right: 14px;
       color: #9fb3d1; font-size: 12px; user-select: none;
@@ -409,7 +420,7 @@
 <body>
   <canvas id="game"></canvas>
 
-  <div id="hud" class="hidden"><span data-i18n="hud.score">分数</span> <b id="score">0</b> · <span data-i18n="hud.life">生命</span> <b id="lives">3</b> · <span data-i18n="hud.bomb">炸弹</span> <b id="bombs">1</b> · <span data-i18n="hud.stage">关卡</span> <b id="stage">1</b> · <span data-i18n="hud.wave">波次</span> <b id="wave">1</b> · <span data-i18n="hud.power">火力</span> <b id="power">1</b></div>
+  <div id="hud" class="hidden"><span data-i18n="hud.score">分数</span> <b id="score">0</b> · <span data-i18n="hud.life">生命</span> <b id="lives">3</b> · <span data-i18n="hud.bomb">炸弹</span> <b id="bombs">1</b> · <span data-i18n="hud.stage">关卡</span> <b id="stage">1</b> · <span data-i18n="hud.wave">波次</span> <b id="wave">1</b> · <span data-i18n="hud.power">火力</span> <b id="power">1</b><span id="comboWrap" class="hidden"> · <span data-i18n="hud.combo">连击</span> <b id="combo" class="combo">2</b></span></div>
   <div id="panel" class="hidden">
     <label><span data-i18n="panel.sens">触摸板灵敏度</span> <span id="sensVal">5</span></label>
     <input id="sens" type="range" min="1" max="10" value="5">
@@ -461,6 +472,7 @@
       <div class="score-label" data-i18n="gameover.score">本局得分</div>
       <div class="bigscore" id="finalScore">0</div>
       <div class="best"><span data-i18n="gameover.best">历史最高</span> <b id="bestGO">0</b></div>
+      <div class="best"><span data-i18n="go.maxcombo">最高连击</span> <b id="maxComboGO">0</b></div>
       <div class="leaderboard">
         <div class="lbtitle" data-i18n="menu.lb">本地排行榜</div>
         <div id="goLB"></div>
@@ -488,6 +500,7 @@
       <div class="score-label" data-i18n="victory.score">本局得分</div>
       <div class="bigscore" id="finalScoreV">0</div>
       <div class="best"><span data-i18n="victory.best">历史最高</span> <b id="bestV">0</b></div>
+      <div class="best"><span data-i18n="go.maxcombo">最高连击</span> <b id="maxComboV">0</b></div>
       <button id="victoryRetry" class="primary" data-i18n="retry">再战一局</button>
       <button id="victoryMenu" data-i18n="menuBtn">返回菜单</button>
     </div>

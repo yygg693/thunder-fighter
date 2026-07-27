@@ -181,13 +181,79 @@ window.DJFE = window.DJFE || {};
     c.beginPath(); c.arc(-t * 0.62, hh * 0.42, 2.2, 0, Math.PI * 2); c.fill();
     c.beginPath(); c.arc(t * 0.62, hh * 0.42, 2.2, 0, Math.PI * 2); c.fill();
 
+    // ---- 火力等级变形（power 1-5 分层加装） ----
+    const pw = opts.power || 1;
+    if (pw >= 2) {
+      // 翼下炮舱（两侧小舱体 + 发光炮口）
+      c.fillStyle = darken(wing, 0.15);
+      [-1, 1].forEach((sx) => {
+        c.beginPath();
+        c.moveTo(sx * t * 0.30, hh * 0.10);
+        c.lineTo(sx * t * 0.42, hh * 0.18);
+        c.lineTo(sx * t * 0.40, hh * 0.34);
+        c.lineTo(sx * t * 0.28, hh * 0.28);
+        c.closePath(); c.fill();
+        c.fillStyle = accent;
+        c.shadowColor = accent; c.shadowBlur = 8;
+        c.beginPath(); c.arc(sx * t * 0.35, hh * 0.33, 2.4, 0, Math.PI * 2); c.fill();
+        c.shadowBlur = 0;
+        c.fillStyle = darken(wing, 0.15);
+      });
+    }
+    if (pw >= 3) {
+      // 中层副翼（后掠小翼，描边发光）
+      c.save();
+      c.strokeStyle = hexA2(accent, 0.9); c.lineWidth = 1.6;
+      c.shadowColor = accent; c.shadowBlur = 10;
+      const sg = c.createLinearGradient(0, -hh * 0.1, 0, hh * 0.25);
+      sg.addColorStop(0, lighten(wing, 0.4)); sg.addColorStop(1, darken(wing, 0.2));
+      c.fillStyle = sg;
+      [-1, 1].forEach((sx) => {
+        c.beginPath();
+        c.moveTo(sx * t * 0.16, -hh * 0.12);
+        c.lineTo(sx * t * 0.55, hh * 0.10);
+        c.lineTo(sx * t * 0.20, hh * 0.14);
+        c.closePath(); c.fill(); c.stroke();
+      });
+      c.restore();
+    }
+    if (pw >= 4) {
+      // 浮游炮 ×2（环绕机身公转的发光菱形体）
+      const orbA = now / 480;
+      [-1, 1].forEach((sx) => {
+        const ox = Math.cos(orbA + (sx > 0 ? 0 : Math.PI)) * t * 0.95;
+        const oy = Math.sin(orbA + (sx > 0 ? 0 : Math.PI)) * hh * 0.28 - hh * 0.05;
+        c.save();
+        c.translate(ox, oy); c.rotate(now / 300);
+        c.fillStyle = accent; c.shadowColor = accent; c.shadowBlur = 14;
+        c.beginPath();
+        c.moveTo(0, -6); c.lineTo(4.5, 0); c.lineTo(0, 6); c.lineTo(-4.5, 0);
+        c.closePath(); c.fill();
+        c.fillStyle = '#ffffff';
+        c.beginPath(); c.arc(0, 0, 1.8, 0, Math.PI * 2); c.fill();
+        c.restore();
+      });
+    }
+    if (pw >= 5) {
+      // 全展开：机首上方旋转能量光环
+      c.save();
+      c.translate(0, -hh * 0.18);
+      c.rotate(now / 700);
+      c.strokeStyle = hexA2(accent, 0.75); c.lineWidth = 2;
+      c.shadowColor = accent; c.shadowBlur = 12;
+      c.setLineDash([10, 7]);
+      c.beginPath(); c.arc(0, 0, t * 0.52, 0, Math.PI * 2); c.stroke();
+      c.setLineDash([]);
+      c.restore();
+    }
+
     c.restore();
   }
 
   function drawPlayer(now, player, game) {
     let sk = (game && game.skin) || (DJFE.skins && DJFE.skins.current());
     if (!sk) sk = { body: '#1fa8e6', accent: '#bff7ff', engine: '#ff8a3c', wing: '#0d5e96', trail: '#7df9ff', pattern: 'plain' };
-    paintShip(ctx, now, player.x, player.y, player.w, player.h, sk, { shieldUntil: player.shieldUntil, muzzle: game && game.muzzle });
+    paintShip(ctx, now, player.x, player.y, player.w, player.h, sk, { shieldUntil: player.shieldUntil, muzzle: game && game.muzzle, power: game && game.power });
   }
 
   // ---- 敌机（四种独立造型） ----
@@ -245,6 +311,84 @@ window.DJFE = window.DJFE || {};
       ctx.shadowColor = lite; ctx.shadowBlur = 14;
       ctx.beginPath(); ctx.arc(0, 0, s * 0.16 * (0.8 + 0.3 * cp), 0, Math.PI * 2); ctx.fill();
       ctx.shadowBlur = 0;
+    } else if (en.type === 'spinner') {
+      // 回旋机：三叶螺旋桨（旋转）+ 中心能量核
+      const rot = (en.phase || 0) * 2.2;
+      ctx.save(); ctx.rotate(rot);
+      ctx.shadowColor = col; ctx.shadowBlur = 12;
+      ctx.fillStyle = col;
+      for (let i = 0; i < 3; i++) {
+        ctx.save(); ctx.rotate(i * Math.PI * 2 / 3);
+        ctx.beginPath();
+        ctx.moveTo(0, -s * 0.08);
+        ctx.lineTo(s * 0.16, -s * 0.42);
+        ctx.lineTo(0, -s * 0.55);
+        ctx.lineTo(-s * 0.16, -s * 0.42);
+        ctx.closePath(); ctx.fill();
+        ctx.restore();
+      }
+      ctx.shadowBlur = 0;
+      ctx.restore();
+      const cp = 0.6 + 0.4 * Math.sin((en.phase || 0) * 5);
+      ctx.fillStyle = lite;
+      ctx.shadowColor = lite; ctx.shadowBlur = 12;
+      ctx.beginPath(); ctx.arc(0, 0, s * (0.14 + 0.04 * cp), 0, Math.PI * 2); ctx.fill();
+      ctx.shadowBlur = 0;
+    } else if (en.type === 'diver') {
+      // 俯冲机：尖锐箭头；锁定时机身闪白
+      const locking = en.lockT > 0;
+      ctx.shadowColor = locking ? '#ffffff' : col; ctx.shadowBlur = locking ? 18 : 10;
+      ctx.fillStyle = locking && Math.floor((en.phase || 0) * 20) % 2 === 0 ? '#ffffff' : col;
+      ctx.beginPath();
+      ctx.moveTo(0, s * 0.6);                     // 向下尖头（俯冲朝向）
+      ctx.lineTo(s * 0.34, -s * 0.1);
+      ctx.lineTo(s * 0.14, -s * 0.5);
+      ctx.lineTo(-s * 0.14, -s * 0.5);
+      ctx.lineTo(-s * 0.34, -s * 0.1);
+      ctx.closePath(); ctx.fill();
+      ctx.shadowBlur = 0;
+      // 红色复眼
+      ctx.fillStyle = '#ffe08a';
+      ctx.beginPath(); ctx.arc(-s * 0.08, -s * 0.18, s * 0.05, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(s * 0.08, -s * 0.18, s * 0.05, 0, Math.PI * 2); ctx.fill();
+    } else if (en.type === 'sniper') {
+      // 狙击机：细长机身 + 超长炮管 + 瞄准镜光点
+      ctx.shadowColor = col; ctx.shadowBlur = 10;
+      ctx.fillStyle = col;
+      ctx.beginPath();
+      ctx.moveTo(0, -s * 0.55);
+      ctx.lineTo(s * 0.18, -s * 0.2);
+      ctx.lineTo(s * 0.14, s * 0.4);
+      ctx.lineTo(-s * 0.14, s * 0.4);
+      ctx.lineTo(-s * 0.18, -s * 0.2);
+      ctx.closePath(); ctx.fill();
+      ctx.shadowBlur = 0;
+      // 长炮管（朝下）
+      ctx.fillStyle = dark;
+      ctx.fillRect(-s * 0.045, s * 0.3, s * 0.09, s * 0.5);
+      // 瞄准镜（红光脉动）
+      const sp = 0.5 + 0.5 * Math.sin((en.phase || 0) * 6);
+      ctx.fillStyle = `rgba(255,80,80,${0.5 + 0.5 * sp})`;
+      ctx.shadowColor = '#ff5050'; ctx.shadowBlur = 10;
+      ctx.beginPath(); ctx.arc(0, -s * 0.1, s * 0.07, 0, Math.PI * 2); ctx.fill();
+      ctx.shadowBlur = 0;
+    } else if (en.type === 'splitter') {
+      // 分裂母体：大圆胞 + 内部 3 个子体脉动
+      ctx.shadowColor = col; ctx.shadowBlur = 12;
+      ctx.fillStyle = col;
+      ctx.beginPath(); ctx.arc(0, 0, s * 0.5, 0, Math.PI * 2); ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = dark;
+      ctx.beginPath(); ctx.arc(0, 0, s * 0.38, 0, Math.PI * 2); ctx.fill();
+      // 3 个子体（在母体内缓慢公转）
+      const rot = (en.phase || 0) * 1.5;
+      for (let i = 0; i < 3; i++) {
+        const a = rot + i * Math.PI * 2 / 3;
+        const ox = Math.cos(a) * s * 0.2, oy = Math.sin(a) * s * 0.2;
+        const pp = 0.7 + 0.3 * Math.sin((en.phase || 0) * 4 + i);
+        ctx.fillStyle = lite;
+        ctx.beginPath(); ctx.arc(ox, oy, s * 0.09 * pp, 0, Math.PI * 2); ctx.fill();
+      }
     } else if (en.type === 'shooter') {
       // 炮手：宽体 + 双管 + 中央核心
       ctx.shadowColor = col; ctx.shadowBlur = 8;
