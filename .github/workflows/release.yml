@@ -55,15 +55,17 @@ jobs:
         run: |
           node scripts/sync-web.js
           npx cap sync android
-      - name: Ensure Android SDK 35 present
-        run: |
-          yes | sdkmanager --licenses > /dev/null 2>&1 || true
-          sdkmanager "platforms;android-35" "build-tools;35.0.0"
+      - uses: gradle/actions/setup-gradle@v4
       - name: Build debug APK
         working-directory: android
         run: |
           chmod +x ./gradlew
-          ./gradlew assembleDebug --no-daemon --stacktrace
+          if ! ./gradlew assembleDebug --no-daemon --stacktrace > build.log 2>&1; then
+            grep -E "FAILURE|error:|Exception|What went wrong|Caused by|> " build.log | head -25 | while IFS= read -r line; do
+              echo "::error::$line"
+            done
+            exit 1
+          fi
       - name: Upload APK artifact (push to main fallback)
         if: github.ref == 'refs/heads/main'
         uses: actions/upload-artifact@v4
