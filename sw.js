@@ -2,14 +2,20 @@
  * 打飞机 · Fighter Shooter — Service Worker
  * 缓存应用外壳，实现离线可玩（仅在 http(s) 部署时激活）
  * ===================================================================== */
-const CACHE = 'djfe-v1';
+/* ⚠ 改了 ASSETS 或任何被缓存的文件，**必须**同时把 CACHE 版本号 +1。
+ * activate 只删「名字 !== 当前 CACHE」的旧缓存；版本号不变的话，已安装的
+ * PWA 会一直吃旧的 index.html —— 新加的 <script> 永远加载不到，3D 会静默
+ * 退化成 2D，是最难排查的那类劣化。 */
+const CACHE = 'djfe-v1.3.1';
 const ASSETS = [
   '.',
   'index.html',
   'manifest.webmanifest',
   'icon.svg',
+  'libs/three.min.js',
   'src/core.js',
   'src/entities.js',
+  'src/render3d.js',
   'src/game.js',
   'src/main.js',
 ];

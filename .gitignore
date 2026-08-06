@@ -2,9 +2,15 @@ node_modules/
 desktop/node_modules/
 desktop/dist/
 dist/
-release/
+/release/
 www/
 *.exe
 *.log
 .DS_Store
 Thumbs.db
+
+# sync-web 墓区（本地 scratch，非游戏资产）
+.removed/
+
+# AI 原始贴图备份（可重新生成，体积大不进版本控制）
+.raw_v1/

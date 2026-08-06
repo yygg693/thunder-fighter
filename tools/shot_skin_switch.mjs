@@ -1,0 +1,20 @@
+import { createRequire } from 'node:module';
+const require = createRequire('C://Users//22091//.workbuddy//binaries//node//workspace//');
+const { chromium } = require('playwright');
+const SKIN = process.argv[2] || 'golden';
+const OUT = `tools/shot_skin_${SKIN}.png`;
+(async () => {
+  const browser = await chromium.launch({ headless: true, channel: 'chrome', args: ['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader','--ignore-gpu-blocklist','--allow-file-access-from-files','--no-sandbox'] });
+  const page = await browser.newPage({ viewport: { width: 900, height: 1000 }, deviceScaleFactor: 1 });
+  const errors = [];
+  page.on('console', (m) => { if (m.type()==='error'||m.type()==='warning') errors.push(m.text()); });
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto('file:///D:/MyGame/thunder-fighter/www/index.html', { waitUntil: 'load' });
+  await page.waitForFunction(() => window.DJFE && window.DJFE.Game, null, { timeout: 8000 });
+  await page.evaluate((skin) => { if (DJFE.skins) DJFE.skins.select(skin); }, SKIN);
+  await page.click('#startBtn', { timeout: 4000 });
+  await page.waitForTimeout(2000);
+  await page.screenshot({ path: OUT });
+  console.log('saved', OUT, 'errors:', errors);
+  await browser.close();
+})();

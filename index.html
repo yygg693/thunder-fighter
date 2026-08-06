@@ -6,18 +6,39 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="theme-color" content="#05060f">
+  <meta name="theme-color" content="#17130f">
   <link rel="manifest" href="manifest.webmanifest">
   <title>打飞机 · Fighter Shooter</title>
   <style>
+    /* ===== 方向 B · 柔调画意科幻 调色板 ===== */
+    :root {
+      --bg-warm:    #17130f;   /* 暖调近黑底，覆盖在深蓝星云之上 */
+      --ink:        #ece3d4;   /* 暖象牙白文字 */
+      --ink-dim:    #b6ad9f;   /* 柔化灰文字 */
+      --ink-faint:  #8d857a;   /* 更弱的暖灰 */
+      --teal:       #9dbfc4;   /* 去饱和雾青（冷桥色，衔接暖金与冷蓝） */
+      --teal-hi:    #bcd9dd;
+      --teal-deep:  #5d8a90;
+      --gold:       #d8b27a;   /* 柔金（画意主暖调） */
+      --gold-hi:    #ecd4a4;
+      --gold-deep:  #9c7c46;
+      --ember:      #d98a5c;   /* 余烬橙（死亡/连击） */
+      --ember-hi:   #e8a878;
+      --line:       rgba(198,182,150,.18);  /* 暖调描边 */
+      --line-soft:  rgba(198,182,150,.12);
+      --glow-teal:  rgba(157,191,196,.30);
+      --glow-gold:  rgba(216,178,122,.34);
+      --glow-ember: rgba(217,138,92,.34);
+    }
+
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body {
       width: 100%; height: 100%;
       overflow: hidden;
-      background: #05060f;
+      background: var(--bg-warm);
       font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
       cursor: none;
-      color: #cfe6ff;
+      color: var(--ink);
     }
     #game { display: block; touch-action: none; z-index: 0; }
     .overlay { z-index: 10; pointer-events: auto; }
@@ -25,48 +46,83 @@
     /* HUD */
     #hud {
       position: fixed; top: 12px; left: 14px;
-      color: #8fe3ff; font-size: 14px; line-height: 1.6;
-      text-shadow: 0 0 6px rgba(0,180,255,.6);
+      color: var(--teal); font-size: 14px; line-height: 1.6;
+      text-shadow: 0 0 8px rgba(157,191,196,.28);
       pointer-events: none; user-select: none;
-      background: rgba(8,14,30,.5);
-      border: 1px solid rgba(80,140,220,.22); border-radius: 10px;
+      background: rgba(22,18,16,.50);
+      border: 1px solid var(--line); border-radius: 10px;
       padding: 7px 12px;
       backdrop-filter: blur(4px);
-      box-shadow: inset 0 1px 0 rgba(255,255,255,.05), 0 4px 16px rgba(0,0,0,.3);
+      box-shadow: inset 0 1px 0 rgba(255,245,230,.05), 0 4px 18px rgba(0,0,0,.34);
     }
     #hud b {
-      color: #ffd86b; font-variant-numeric: tabular-nums;
-      text-shadow: 0 0 8px rgba(255,216,107,.45);
+      color: var(--gold); font-variant-numeric: tabular-nums;
+      text-shadow: 0 0 10px rgba(216,178,122,.30);
     }
-    /* 连击（火焰色 + 脉动） */
+    /* 连击（余烬色 + 脉动） */
     #hud b.combo {
-      color: #ff9b3c;
-      text-shadow: 0 0 10px rgba(255,140,50,.8);
+      color: var(--ember-hi);
+      text-shadow: 0 0 12px rgba(217,138,92,.50);
       animation: comboPulse .5s ease-in-out infinite alternate;
     }
     @keyframes comboPulse {
       from { transform: scale(1); }
       to   { transform: scale(1.18); }
     }
+    /* 擦弹槽：一条细进度条，满槽后 .boost 转成余烬色常亮 —— 玩家不用读数字，
+       余光扫到条变色就知道 1.5 倍分窗口开了。 */
+    #hud #grazeBar {
+      display: inline-block; vertical-align: middle;
+      width: 54px; height: 6px; margin-left: 2px;
+      background: rgba(157,191,196,.16);
+      border: 1px solid var(--line); border-radius: 4px;
+      overflow: hidden;
+    }
+    #hud #grazeFill {
+      display: block; width: 0%; height: 100%;
+      background: var(--gold);
+      box-shadow: 0 0 8px rgba(216,178,122,.55);
+      transition: width .08s linear;
+    }
+    #hud #grazeBar.boost { border-color: var(--ember-hi); }
+    #hud #grazeBar.boost #grazeFill {
+      width: 100% !important;
+      background: var(--ember-hi);
+      box-shadow: 0 0 12px rgba(217,138,92,.70);
+      animation: comboPulse .5s ease-in-out infinite alternate;
+    }
     #hud .hidden { display: none; }
+    /* 2c-1 · 技能 HUD（独立 #skillWrap，仅满槽显示；.ready 金光脉冲） */
+    #hud #skillFill {
+      display: inline-block; vertical-align: middle;
+      width: 0%; height: 6px; margin-left: 4px;
+      background: var(--gold);
+      box-shadow: 0 0 8px rgba(216,178,122,.55);
+      border-radius: 4px;
+    }
+    #hud #skillWrap.ready {
+      color: var(--gold-hi);
+      text-shadow: 0 0 12px rgba(216,178,122,.50);
+      animation: comboPulse .5s ease-in-out infinite alternate;
+    }
     #panel {
       position: fixed; top: 10px; right: 14px;
-      color: #9fb3d1; font-size: 12px; user-select: none;
-      background: rgba(10,16,32,.55); padding: 8px 10px; border-radius: 8px;
-      border: 1px solid rgba(80,140,220,.25);
+      color: var(--ink-dim); font-size: 12px; user-select: none;
+      background: rgba(22,18,16,.54); padding: 8px 10px; border-radius: 8px;
+      border: 1px solid var(--line);
       display: flex; align-items: center; gap: 8px;
     }
-    #panel input[type=range] { width: 110px; cursor: pointer; }
-    #panel span { color: #8fe3ff; min-width: 14px; text-align: right; }
+    #panel input[type=range] { width: 110px; cursor: pointer; accent-color: var(--teal); }
+    #panel span { color: var(--teal); min-width: 14px; text-align: right; }
     #panel .mini {
-      background: rgba(40,60,100,.4); color: #bcd4f5;
-      border: 1px solid rgba(90,140,220,.35); border-radius: 6px;
+      background: rgba(70,58,46,.40); color: var(--ink);
+      border: 1px solid var(--line); border-radius: 6px;
       padding: 4px 9px; font-size: 11px; cursor: pointer; margin-left: 4px;
     }
-    #panel .mini:hover { background: rgba(54,224,255,.18); }
+    #panel .mini:hover { background: rgba(216,178,122,.14); }
     #hint {
       position: fixed; bottom: 14px; left: 50%; transform: translateX(-50%);
-      color: #6b7a99; font-size: 12px; user-select: none; pointer-events: none;
+      color: var(--ink-faint); font-size: 12px; user-select: none; pointer-events: none;
       text-align: center; line-height: 1.5;
     }
 
@@ -75,8 +131,10 @@
       position: fixed; inset: 0;
       display: flex; flex-direction: column; align-items: center; justify-content: center;
       gap: 16px; cursor: default;
-      background: rgba(5,6,15,.82);
-      backdrop-filter: blur(2px);
+      background:
+        radial-gradient(circle at 50% 36%, rgba(216,178,122,.05), transparent 62%),
+        rgba(18,14,12,.86);
+      backdrop-filter: blur(3px);
       text-align: center;
       animation: ovFade .28s ease-out;
     }
@@ -84,32 +142,34 @@
     .overlay.hidden { display: none; }
     .overlay h1 {
       font-size: 56px; letter-spacing: 4px; font-weight: 900;
-      background: linear-gradient(180deg, #eafcff 8%, #58e6ff 45%, #1f8fe6 92%);
+      background: linear-gradient(180deg, #f4ecdc 8%, var(--gold) 45%, var(--gold-deep) 92%);
       -webkit-background-clip: text; background-clip: text;
       -webkit-text-fill-color: transparent; color: transparent;
-      filter: drop-shadow(0 0 20px rgba(54,224,255,.5));
+      filter: drop-shadow(0 0 22px rgba(216,178,122,.34));
     }
     /* 各浮层标题色相 */
     #gameover h1 {
-      background: linear-gradient(180deg, #fff0e8 8%, #ff8a5c 45%, #e63b3b 92%);
-      filter: drop-shadow(0 0 20px rgba(255,110,80,.55));
+      background: linear-gradient(180deg, #f6e7dc 8%, var(--ember) 45%, #9e4f30 92%);
+      filter: drop-shadow(0 0 22px rgba(217,138,92,.40));
     }
     #victory h1 {
-      background: linear-gradient(180deg, #fffbe0 8%, #ffd86b 45%, #f0a400 92%);
-      filter: drop-shadow(0 0 24px rgba(255,200,80,.6));
+      background: linear-gradient(180deg, #f4ecd9 8%, var(--gold) 45%, var(--gold-deep) 92%);
+      filter: drop-shadow(0 0 26px rgba(216,178,122,.42));
     }
     #pause h1 {
-      background: linear-gradient(180deg, #e8f4ff 8%, #9bc8ff 45%, #4a7de6 92%);
-      filter: drop-shadow(0 0 18px rgba(120,160,255,.5));
+      background: linear-gradient(180deg, #eef2f2 8%, var(--teal) 45%, var(--teal-deep) 92%);
+      filter: drop-shadow(0 0 20px rgba(157,191,196,.36));
     }
     /* 通用浮层卡片（与 menu-card 同语言） */
     .panel-card {
       display: flex; flex-direction: column; align-items: center; gap: 13px;
       width: min(380px, 92vw); padding: 20px 26px 22px;
-      background: linear-gradient(180deg, rgba(16,28,54,.72), rgba(8,14,30,.78));
-      border: 1px solid rgba(80,140,220,.3); border-radius: 18px;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,.06), inset 0 0 40px rgba(20,60,120,.18),
-                  0 14px 44px rgba(0,0,0,.5);
+      background:
+        radial-gradient(circle at 50% 0%, rgba(216,178,122,.06), transparent 70%),
+        linear-gradient(180deg, rgba(30,26,22,.76), rgba(16,14,12,.82));
+      border: 1px solid var(--line); border-radius: 18px;
+      box-shadow: inset 0 1px 0 rgba(255,245,230,.06), inset 0 0 44px rgba(120,96,60,.12),
+                  0 16px 48px rgba(0,0,0,.52);
       backdrop-filter: blur(6px);
       position: relative;
       animation: cardIn .34s cubic-bezier(.2,.9,.3,1.15);
@@ -118,10 +178,10 @@
     .panel-card::before {
       content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%);
       width: 60%; height: 2px; border-radius: 2px;
-      background: linear-gradient(90deg, transparent, rgba(54,224,255,.8), transparent);
+      background: linear-gradient(90deg, transparent, rgba(216,178,122,.55), transparent);
     }
-    #victory .panel-card::before { background: linear-gradient(90deg, transparent, rgba(255,216,107,.85), transparent); }
-    #gameover .panel-card::before { background: linear-gradient(90deg, transparent, rgba(255,110,80,.8), transparent); }
+    #victory .panel-card::before { background: linear-gradient(90deg, transparent, rgba(216,178,122,.60), transparent); }
+    #gameover .panel-card::before { background: linear-gradient(90deg, transparent, rgba(217,138,92,.55), transparent); }
     .panel-card > * { animation: itemIn .3s ease-out backwards; }
     .panel-card > *:nth-child(1) { animation-delay: .05s; }
     .panel-card > *:nth-child(2) { animation-delay: .1s; }
@@ -131,107 +191,109 @@
     .panel-card > *:nth-child(6) { animation-delay: .3s; }
     @keyframes itemIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
     /* 大分数 */
-    .score-label { color: #8fa6c8; font-size: 13px; letter-spacing: 3px; }
+    .score-label { color: var(--ink-dim); font-size: 13px; letter-spacing: 3px; }
     .bigscore {
       font-size: 52px; font-weight: 900; letter-spacing: 2px; line-height: 1.1;
       font-variant-numeric: tabular-nums;
-      background: linear-gradient(180deg, #ffffff 15%, #8fe3ff 60%, #36a0e6 95%);
+      background: linear-gradient(180deg, #f3ece0 15%, var(--gold) 60%, var(--gold-deep) 95%);
       -webkit-background-clip: text; background-clip: text;
       -webkit-text-fill-color: transparent; color: transparent;
-      filter: drop-shadow(0 0 18px rgba(54,224,255,.5));
+      filter: drop-shadow(0 0 20px rgba(216,178,122,.34));
     }
     #victory .bigscore {
-      background: linear-gradient(180deg, #fffbe8 15%, #ffd86b 60%, #e69500 95%);
-      filter: drop-shadow(0 0 18px rgba(255,200,80,.55));
+      background: linear-gradient(180deg, #f4ecd9 15%, var(--gold) 60%, #ac8140 95%);
+      filter: drop-shadow(0 0 20px rgba(216,178,122,.40));
     }
-    .panel-card .leaderboard { width: 100%; background: rgba(6,12,26,.5); }
+    .panel-card .leaderboard { width: 100%; background: rgba(14,17,22,.52); }
     .panel-card button.primary { width: 100%; margin-top: 2px; }
     .panel-card button:not(.primary) { margin-top: 0; width: 100%; }
-    .overlay .sub { color: #8fa6c8; font-size: 15px; letter-spacing: 2px; }
-    .overlay .sub b { color: #ffd86b; font-size: 22px; }
-    .overlay .best { color: #ffd86b; font-size: 16px; letter-spacing: 1px; margin-top: -6px; }
+    .overlay .sub { color: var(--ink-dim); font-size: 15px; letter-spacing: 2px; }
+    .overlay .sub b { color: var(--gold); font-size: 22px; }
+    .overlay .best { color: var(--gold); font-size: 16px; letter-spacing: 1px; margin-top: -6px; }
     .overlay .best b { color: #fff; }
     .howto {
-      color: #7e90b0; font-size: 13px; line-height: 1.8; max-width: 460px;
+      color: var(--ink-faint); font-size: 13px; line-height: 1.8; max-width: 460px;
     }
     .diff { display: flex; gap: 12px; }
     .diff button {
       padding: 8px 20px; font-size: 15px; border-radius: 8px;
-      background: rgba(40,60,100,.4); color: #bcd4f5;
-      border: 1px solid rgba(90,140,220,.35); cursor: pointer;
+      background: rgba(70,58,46,.36); color: var(--ink);
+      border: 1px solid var(--line); cursor: pointer;
     }
     .diff button.sel {
-      background: rgba(54,224,255,.22); color: #fff;
-      border-color: #36e0ff; box-shadow: 0 0 12px rgba(54,224,255,.4);
+      background: rgba(216,178,122,.18); color: #fff;
+      border-color: var(--gold); box-shadow: 0 0 14px rgba(216,178,122,.28);
     }
     .overlay button.primary {
       padding: 12px 42px; font-size: 18px; border-radius: 10px;
-      background: linear-gradient(180deg,#39e6ff,#1f9bff); color: #04121f;
+      background: linear-gradient(180deg, var(--teal), var(--teal-deep)); color: #14110d;
       font-weight: 700; border: none; cursor: pointer;
-      box-shadow: 0 6px 20px rgba(40,160,255,.45);
+      box-shadow: 0 6px 22px rgba(157,191,196,.30);
       position: relative; overflow: hidden;
       transition: transform .12s ease, filter .12s ease;
     }
     .overlay button.primary::after {
       content: ''; position: absolute; top: 0; left: -70%;
       width: 45%; height: 100%; transform: skewX(-22deg);
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,.5), transparent);
+      background: linear-gradient(90deg, transparent, rgba(255,250,240,.5), transparent);
       animation: btnSheen 3.2s ease-in-out infinite;
     }
     .overlay button.primary:hover { filter: brightness(1.08); transform: translateY(-1px); }
     .overlay button.primary:active { transform: translateY(1px) scale(.99); }
     .overlay button:not(.primary) {
       margin-top: 4px; padding: 9px 26px; font-size: 14px; border-radius: 8px;
-      background: transparent; color: #9fb3d1;
-      border: 1px solid rgba(120,150,200,.3); cursor: pointer;
+      background: transparent; color: var(--ink-dim);
+      border: 1px solid var(--line-soft); cursor: pointer;
     }
-    .overlay button:not(.primary):hover { border-color: rgba(54,224,255,.55); color: #cfeaff; }
+    .overlay button:not(.primary):hover { border-color: rgba(216,178,122,.40); color: var(--ink); }
 
     /* ---- 开始菜单专属美化 ---- */
     #menu { gap: 20px; }
     .menu-hero { display: flex; flex-direction: column; align-items: center; gap: 8px; }
     .hero-badge {
-      font-size: 11px; letter-spacing: 6px; color: #6fa8d8;
-      padding: 4px 16px; border: 1px solid rgba(111,168,216,.35); border-radius: 999px;
-      background: rgba(20,40,80,.35); user-select: none;
+      font-size: 11px; letter-spacing: 6px; color: var(--ink-dim);
+      padding: 4px 16px; border: 1px solid var(--line); border-radius: 999px;
+      background: rgba(34,28,22,.40); user-select: none;
     }
     #menu h1 {
       font-size: 64px; letter-spacing: 8px; font-weight: 900;
-      background: linear-gradient(180deg, #eafcff 8%, #58e6ff 45%, #1f8fe6 92%);
+      background: linear-gradient(180deg, #f6efe0 8%, var(--gold) 45%, var(--gold-deep) 92%);
       -webkit-background-clip: text; background-clip: text;
       -webkit-text-fill-color: transparent; color: transparent;
-      filter: drop-shadow(0 0 22px rgba(54,224,255,.55));
+      filter: drop-shadow(0 0 24px rgba(216,178,122,.40));
       animation: heroGlow 2.8s ease-in-out infinite;
     }
     @keyframes heroGlow {
-      0%, 100% { filter: drop-shadow(0 0 16px rgba(54,224,255,.45)); }
-      50%      { filter: drop-shadow(0 0 34px rgba(54,224,255,.85)); }
+      0%, 100% { filter: drop-shadow(0 0 16px rgba(216,178,122,.30)); }
+      50%      { filter: drop-shadow(0 0 36px rgba(216,178,122,.58)); }
     }
     #menu .sub {
       display: flex; align-items: center; gap: 14px;
-      color: #7fa0c8; font-size: 14px; letter-spacing: 6px;
+      color: var(--ink-faint); font-size: 14px; letter-spacing: 6px;
     }
     #menu .sub::before, #menu .sub::after {
       content: ''; width: 56px; height: 1px;
-      background: linear-gradient(90deg, transparent, rgba(127,160,200,.7));
+      background: linear-gradient(90deg, transparent, rgba(216,178,122,.40));
     }
     #menu .sub::after { transform: scaleX(-1); }
     .menu-card {
       display: flex; flex-direction: column; align-items: center; gap: 14px;
       width: min(400px, 92vw); padding: 20px 26px 22px;
-      background: linear-gradient(180deg, rgba(16,28,54,.72), rgba(8,14,30,.78));
-      border: 1px solid rgba(80,140,220,.3); border-radius: 18px;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,.06), inset 0 0 40px rgba(20,60,120,.18),
-                  0 14px 44px rgba(0,0,0,.5);
+      background:
+        radial-gradient(circle at 50% 0%, rgba(216,178,122,.06), transparent 70%),
+        linear-gradient(180deg, rgba(30,26,22,.76), rgba(16,14,12,.82));
+      border: 1px solid var(--line); border-radius: 18px;
+      box-shadow: inset 0 1px 0 rgba(255,245,230,.06), inset 0 0 44px rgba(120,96,60,.12),
+                  0 16px 48px rgba(0,0,0,.52);
       backdrop-filter: blur(6px);
       position: relative;
     }
     .menu-card::before {
       content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%);
       width: 60%; height: 2px; border-radius: 2px;
-      background: linear-gradient(90deg, transparent, rgba(54,224,255,.8), transparent);
+      background: linear-gradient(90deg, transparent, rgba(216,178,122,.55), transparent);
     }
-    .menu-card .leaderboard { width: 100%; background: rgba(6,12,26,.5); }
+    .menu-card .leaderboard { width: 100%; background: rgba(14,17,22,.52); }
     .menu-card .howto { font-size: 12.5px; }
     .menu-card .best { margin-top: 0; }
     #menu button.primary {
@@ -241,7 +303,7 @@
     #menu button.primary::after {
       content: ''; position: absolute; top: 0; left: -70%;
       width: 45%; height: 100%; transform: skewX(-22deg);
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,.5), transparent);
+      background: linear-gradient(90deg, transparent, rgba(255,250,240,.5), transparent);
       animation: btnSheen 3.2s ease-in-out infinite;
     }
     @keyframes btnSheen {
@@ -253,120 +315,134 @@
 
     /* 排行榜 */
     .leaderboard {
-      width: 280px; background: rgba(10,18,36,.55);
-      border: 1px solid rgba(80,140,220,.25); border-radius: 10px;
+      width: 280px; background: rgba(20,16,14,.56);
+      border: 1px solid var(--line); border-radius: 10px;
       padding: 8px 12px; font-size: 13px;
     }
-    .leaderboard .lbtitle { color: #8fe3ff; font-size: 13px; letter-spacing: 1px; margin-bottom: 4px; }
-    .lbrow { display: flex; align-items: center; gap: 10px; padding: 3px 0; color: #cfe0f5; }
+    .leaderboard .lbtitle { color: var(--teal); font-size: 13px; letter-spacing: 1px; margin-bottom: 4px; }
+    .lbrow { display: flex; align-items: center; gap: 10px; padding: 3px 0; color: var(--ink); }
     .lbrank {
       width: 20px; height: 20px; line-height: 20px; border-radius: 50%;
-      background: rgba(54,224,255,.18); color: #8fe3ff; font-size: 11px; font-weight: 700;
+      background: rgba(216,178,122,.16); color: var(--gold); font-size: 11px; font-weight: 700;
     }
-    .lbrow:nth-child(1) .lbrank { background: rgba(255,216,107,.25); color: #ffd86b; }
+    .lbrow:nth-child(1) .lbrank { background: rgba(216,178,122,.24); color: var(--gold-hi); }
     .lbscore { flex: 1; text-align: left; color: #fff; font-variant-numeric: tabular-nums; }
-    .lbstage { color: #7e90b0; font-size: 11px; }
-    .lbempty { color: #6b7a99; padding: 6px 0; }
+    .lbstage { color: var(--ink-faint); font-size: 11px; }
+    .lbempty { color: var(--ink-faint); padding: 6px 0; }
 
     /* 设置浮层 */
     #settings .setbox {
-      width: 320px; background: rgba(10,18,36,.7);
-      border: 1px solid rgba(80,140,220,.3); border-radius: 12px; padding: 18px 20px;
+      width: 320px; background: rgba(20,16,14,.70);
+      border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px;
       display: flex; flex-direction: column; gap: 14px; text-align: left;
     }
     #settings .setrow { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-    #settings .setrow label { color: #bcd4f5; font-size: 14px; }
-    #settings input[type=range] { width: 150px; cursor: pointer; accent-color: #36e0ff; }
+    #settings .setrow label { color: var(--ink); font-size: 14px; }
+    #settings input[type=range] { width: 150px; cursor: pointer; accent-color: var(--teal); }
     #settings .setbtn {
       padding: 8px 14px; font-size: 13px; border-radius: 8px; cursor: pointer;
-      background: rgba(40,60,100,.4); color: #bcd4f5;
-      border: 1px solid rgba(90,140,220,.35);
+      background: rgba(70,58,46,.38); color: var(--ink);
+      border: 1px solid var(--line);
     }
-    #settings .setbtn:hover { background: rgba(54,224,255,.18); }
+    #settings .setbtn:hover { background: rgba(216,178,122,.14); }
     #settings .seg { display: flex; gap: 6px; }
     #settings .seg button {
       padding: 6px 12px; font-size: 13px; border-radius: 6px; cursor: pointer;
-      background: rgba(40,60,100,.4); color: #bcd4f5;
-      border: 1px solid rgba(90,140,220,.35);
+      background: rgba(70,58,46,.38); color: var(--ink);
+      border: 1px solid var(--line);
     }
-    #settings .seg button.sel { background: rgba(54,224,255,.22); color: #fff; border-color: #36e0ff; }
+    #settings .seg button.sel { background: rgba(216,178,122,.18); color: #fff; border-color: var(--gold); }
 
     /* 皮肤面板 */
-    #skins .sub { color: #9fd4ff; }
+    #skins .sub { color: var(--teal-hi); }
     .skinwrap {
       max-height: 56vh; width: min(580px, 92vw);
       overflow-y: auto; padding: 16px;
-      background: rgba(10,18,36,.55);
-      border: 1px solid rgba(80,140,220,.28); border-radius: 16px;
-      box-shadow: inset 0 0 36px rgba(20,60,120,.22), 0 10px 34px rgba(0,0,0,.38);
+      background: rgba(20,16,14,.56);
+      border: 1px solid var(--line); border-radius: 16px;
+      box-shadow: inset 0 0 40px rgba(120,96,60,.10), 0 12px 38px rgba(0,0,0,.40);
       overscroll-behavior: contain;
       /* 细滚动条（关键：低调、与主色同调） */
       scrollbar-width: thin;
-      scrollbar-color: rgba(54,224,255,.32) transparent;
+      scrollbar-color: rgba(216,178,122,.26) transparent;
     }
     .skinwrap::-webkit-scrollbar { width: 8px; }
     .skinwrap::-webkit-scrollbar-track { background: transparent; margin: 6px 0; }
     .skinwrap::-webkit-scrollbar-thumb {
-      background: linear-gradient(180deg, rgba(54,224,255,.5), rgba(54,224,255,.2));
+      background: linear-gradient(180deg, rgba(216,178,122,.34), rgba(216,178,122,.18));
       border-radius: 8px; border: 2px solid transparent; background-clip: padding-box;
     }
-    .skinwrap::-webkit-scrollbar-thumb:hover { background: rgba(54,224,255,.62); background-clip: padding-box; }
+    .skinwrap::-webkit-scrollbar-thumb:hover { background: rgba(216,178,122,.46); background-clip: padding-box; }
     .skingrid { display: grid; grid-template-columns: repeat(auto-fill, 122px); gap: 14px; justify-content: center; }
     .skincard {
       width: 122px; position: relative; cursor: pointer; overflow: hidden;
-      background: linear-gradient(180deg, rgba(28,46,82,.7), rgba(12,20,40,.72));
-      border: 1px solid rgba(90,140,220,.28); border-radius: 13px; padding: 9px 8px 10px;
+      background: linear-gradient(180deg, rgba(40,32,26,.72), rgba(18,14,12,.74));
+      border: 1px solid var(--line); border-radius: 13px; padding: 9px 8px 10px;
       transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease;
     }
     .skincard::after {
       content: ''; position: absolute; inset: 0; border-radius: 13px; pointer-events: none;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,.07);
+      box-shadow: inset 0 1px 0 rgba(255,245,230,.07);
     }
     .skincard:hover {
-      transform: translateY(-3px); border-color: rgba(54,224,255,.6);
-      box-shadow: 0 10px 24px rgba(0,0,0,.42), 0 0 18px rgba(54,224,255,.22);
+      transform: translateY(-3px); border-color: rgba(216,178,122,.44);
+      box-shadow: 0 10px 26px rgba(0,0,0,.42), 0 0 18px rgba(216,178,122,.18);
     }
     .skincard.sel {
-      border-color: #36e0ff; background: linear-gradient(180deg, rgba(40,72,120,.82), rgba(16,30,60,.82));
-      box-shadow: 0 0 0 1px rgba(54,224,255,.9), 0 0 22px rgba(54,224,255,.5);
+      border-color: var(--gold); background: linear-gradient(180deg, rgba(48,38,28,.84), rgba(22,16,14,.84));
+      box-shadow: 0 0 0 1px rgba(216,178,122,.70), 0 0 22px rgba(216,178,122,.30);
     }
     .skincard canvas { display: block; margin: 0 auto; filter: drop-shadow(0 5px 12px rgba(0,0,0,.45)); }
     .skinname {
-      color: #dbe9ff; font-size: 12px; font-weight: 600; letter-spacing: .5px;
+      color: var(--ink); font-size: 12px; font-weight: 600; letter-spacing: .5px;
       text-align: center; margin-top: 5px;
     }
-    .skincard.sel .skinname { color: #9fefff; text-shadow: 0 0 8px rgba(54,224,255,.55); }
+    .skincard.sel .skinname { color: var(--gold-hi); text-shadow: 0 0 8px rgba(216,178,122,.40); }
+    .skincard img.skinimg { display: block; margin: 0 auto; width: 96px; height: 96px;
+      object-fit: contain; filter: drop-shadow(0 5px 12px rgba(0,0,0,.45)); }
+    .skintag { color: var(--teal-hi); font-size: 10.5px; text-align: center; margin-top: 6px;
+      letter-spacing: .3px; opacity: .92; }
+    .skinweapon { color: var(--ink); font-size: 10px; text-align: center; margin-top: 2px; opacity: .7; }
+    .skindetail { margin: 14px auto 0; max-width: 520px; padding: 12px 14px;
+      background: rgba(20,16,14,.5); border: 1px solid var(--line); border-radius: 12px;
+      text-align: left; }
+    .skindetail .skd-name { font-size: 15px; font-weight: 700; color: var(--gold-hi); }
+    .skindetail .skd-en { font-size: 11px; color: var(--ink); opacity: .6; font-weight: 400; }
+    .skindetail .skd-tag { font-size: 12px; color: var(--teal-hi); margin-top: 3px; }
+    .skindetail .skd-wpn { font-size: 11px; color: var(--ink); margin-top: 2px; }
+    .skindetail .skd-flav { font-size: 11px; color: var(--ink); opacity: .66; margin-top: 4px; font-style: italic; }
+    .skindetail .skd-stats { font-size: 11px; color: var(--gold); margin-top: 5px; letter-spacing: .5px; }
     .skinmini { display: flex; gap: 4px; justify-content: center; margin-top: 7px; }
     .skinmini button {
       font-size: 10px; padding: 2px 7px; border-radius: 6px; cursor: pointer;
-      background: rgba(40,60,100,.42); color: #bcd4f5; border: 1px solid rgba(90,140,220,.35);
+      background: rgba(70,58,46,.40); color: var(--ink); border: 1px solid var(--line);
       transition: background .14s;
     }
-    .skinmini button:hover { background: rgba(54,224,255,.22); }
-    .skinmini button.del:hover { background: rgba(255,90,90,.28); }
+    .skinmini button:hover { background: rgba(216,178,122,.20); }
+    .skinmini button.del:hover { background: rgba(198,96,62,.26); }
     .menu-aux { display: flex; gap: 12px; align-items: center; }
 
     /* 皮肤编辑器 */
     .editorbox {
       display: flex; gap: 24px; align-items: center;
-      background: rgba(10,18,36,.7); border: 1px solid rgba(80,140,220,.3);
+      background: rgba(20,16,14,.70); border: 1px solid var(--line);
       border-radius: 12px; padding: 18px 24px;
     }
     .edpreview {
-      background: radial-gradient(circle at 50% 42%, rgba(54,224,255,.14), transparent 72%);
+      background: radial-gradient(circle at 50% 42%, rgba(216,178,122,.10), transparent 72%);
       border-radius: 10px; padding: 4px;
     }
     .edform { display: flex; flex-direction: column; gap: 9px; text-align: left; }
     .edrow { display: flex; align-items: center; justify-content: space-between; gap: 14px; width: 280px; }
-    .edrow label { color: #bcd4f5; font-size: 14px; }
+    .edrow label { color: var(--ink); font-size: 14px; }
     .edrow input[type=color] { width: 48px; height: 28px; border: none; background: none; cursor: pointer; padding: 0; }
     .edrow input[type=text] {
       width: 150px; padding: 5px 8px; border-radius: 6px;
-      background: rgba(40,60,100,.4); border: 1px solid rgba(90,140,220,.35); color: #fff;
+      background: rgba(70,58,46,.40); border: 1px solid var(--line); color: #fff;
     }
     .edrow select {
       width: 110px; padding: 5px 8px; border-radius: 6px;
-      background: rgba(40,60,100,.4); border: 1px solid rgba(90,140,220,.35); color: #fff;
+      background: rgba(70,58,46,.40); border: 1px solid var(--line); color: #fff;
     }
 
     /* ---- 触屏控制层（仅触屏设备显示） ---- */
@@ -376,13 +452,13 @@
       width: 64px; height: 64px; border-radius: 50%;
       display: flex; align-items: center; justify-content: center;
       font-size: 26px; user-select: none; -webkit-user-select: none;
-      background: rgba(16,28,54,.55); color: #cfe6ff;
-      border: 1.5px solid rgba(90,160,255,.45);
-      box-shadow: 0 4px 18px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.08);
+      background: rgba(22,18,16,.58); color: var(--ink);
+      border: 1.5px solid var(--line);
+      box-shadow: 0 4px 18px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,245,230,.08);
       backdrop-filter: blur(4px);
       touch-action: none; cursor: pointer;
     }
-    #touchUI .tbtn:active { background: rgba(54,224,255,.3); transform: scale(.94); }
+    #touchUI .tbtn:active { background: rgba(216,178,122,.26); transform: scale(.94); }
     #btnBomb {
       right: max(18px, env(safe-area-inset-right));
       bottom: max(24px, env(safe-area-inset-bottom));
@@ -390,9 +466,14 @@
     #btnBomb .cnt {
       position: absolute; top: -4px; right: -4px;
       min-width: 22px; height: 22px; border-radius: 11px; padding: 0 5px;
-      background: linear-gradient(180deg,#ff9b4a,#ff5b3c); color: #fff;
+      background: linear-gradient(180deg, var(--gold), #b0783c); color: #fff;
       font-size: 12px; font-weight: 700; line-height: 22px; text-align: center;
       border: 1px solid rgba(255,255,255,.35);
+    }
+    /* 2c-1 · 触屏技能键（左下 ⚡，位于 💣 左侧） */
+    #btnSkill {
+      right: calc(max(18px, env(safe-area-inset-right)) + 76px);
+      bottom: max(24px, env(safe-area-inset-bottom));
     }
     #btnPause {
       top: max(64px, env(safe-area-inset-top));
@@ -420,7 +501,7 @@
 <body>
   <canvas id="game"></canvas>
 
-  <div id="hud" class="hidden"><span data-i18n="hud.score">分数</span> <b id="score">0</b> · <span data-i18n="hud.life">生命</span> <b id="lives">3</b> · <span data-i18n="hud.bomb">炸弹</span> <b id="bombs">1</b> · <span data-i18n="hud.stage">关卡</span> <b id="stage">1</b> · <span data-i18n="hud.wave">波次</span> <b id="wave">1</b> · <span data-i18n="hud.power">火力</span> <b id="power">1</b><span id="comboWrap" class="hidden"> · <span data-i18n="hud.combo">连击</span> <b id="combo" class="combo">2</b></span></div>
+  <div id="hud" class="hidden"><span data-i18n="hud.score">分数</span> <b id="score">0</b> · <span data-i18n="hud.life">生命</span> <b id="lives">3</b> · <span data-i18n="hud.bomb">炸弹</span> <b id="bombs">1</b> · <span data-i18n="hud.stage">关卡</span> <b id="stage">1</b> · <span data-i18n="hud.wave">波次</span> <b id="wave">1</b> · <span data-i18n="hud.power">火力</span> <b id="power">1</b> · <span id="graze"><span data-i18n="hud.graze">擦弹</span> <span id="grazeBar"><i id="grazeFill"></i></span></span><span id="comboWrap" class="hidden"> · <span data-i18n="hud.combo">连击</span> <b id="combo" class="combo">2</b></span><span id="buffWrap" class="hidden"> · <span data-i18n="hud.buff">增益</span> <b id="buff" class="buff">散射 5s</b></span><span id="skillWrap" class="hidden"> · <span data-i18n="hud.skill">技能</span> <i id="skillFill"></i><b id="skillLabel" data-i18n="hud.skillReady">就绪</b></span></div>
   <div id="panel" class="hidden">
     <label><span data-i18n="panel.sens">触摸板灵敏度</span> <span id="sensVal">5</span></label>
     <input id="sens" type="range" min="1" max="10" value="5">
@@ -432,13 +513,14 @@
   <!-- 触屏控制层（仅触屏设备 + 对局中显示） -->
   <div id="touchUI">
     <button id="btnPause" class="tbtn" aria-label="pause">⏸</button>
+    <button id="btnSkill" class="tbtn" aria-label="skill">⚡</button>
     <button id="btnBomb" class="tbtn" aria-label="bomb">💣<span class="cnt" id="bombCnt">1</span></button>
   </div>
 
   <!-- 开始菜单 -->
   <div id="menu" class="overlay">
     <div class="menu-hero">
-      <div class="hero-badge" aria-hidden="true">◆ ARCADE ◆</div>
+      <div class="hero-badge" aria-hidden="true" data-i18n="brand.arcade">◆ ARCADE ◆</div>
       <h1 data-i18n="menu.title">打飞机</h1>
       <div class="sub" data-i18n="menu.sub">FIGHTER&nbsp;SHOOTER</div>
     </div>
@@ -501,6 +583,12 @@
       <div class="bigscore" id="finalScoreV">0</div>
       <div class="best"><span data-i18n="victory.best">历史最高</span> <b id="bestV">0</b></div>
       <div class="best"><span data-i18n="go.maxcombo">最高连击</span> <b id="maxComboV">0</b></div>
+      <div id="resultBossWrap">
+        <div class="score-label" data-i18n="result.bossBreak">击破 Boss</div>
+        <div id="resultBossList"></div>
+      </div>
+      <div class="best"><span data-i18n="result.graze">擦弹</span> <b id="resultGrazeTotal">0</b></div>
+      <div class="best"><span data-i18n="result.grazeMax">最高擦弹</span> <b id="resultGrazeMax">0</b></div>
       <button id="victoryRetry" class="primary" data-i18n="retry">再战一局</button>
       <button id="victoryMenu" data-i18n="menuBtn">返回菜单</button>
     </div>
@@ -523,6 +611,10 @@
         <button id="fullscreenBtn" class="setbtn" data-i18n="settings.on">开启</button>
       </div>
       <div class="setrow">
+        <label data-i18n="settings.skillAuto">技能自动释放</label>
+        <button id="skillAutoBtn" class="setbtn" data-i18n="settings.on">开启</button>
+      </div>
+      <div class="setrow">
         <label data-i18n="settings.lang">语言</label>
         <div class="seg">
           <button data-lang="zh" class="sel">中文</button>
@@ -540,6 +632,7 @@
     <div class="skinwrap">
       <div id="skinGrid" class="skingrid"></div>
     </div>
+    <div id="skinDetail" class="skindetail"></div>
     <div class="menu-aux">
       <button id="newSkinBtn" class="primary" data-i18n="skin.create">新建皮肤</button>
       <button id="skinsClose" data-i18n="skin.close">返回</button>
@@ -553,11 +646,11 @@
       <div class="edpreview"><canvas id="edPrev" width="170" height="210"></canvas></div>
       <div class="edform">
         <div class="edrow"><label data-i18n="skin.name">名称</label><input id="edName" type="text" maxlength="8" placeholder="我的战机"></div>
-        <div class="edrow"><label data-i18n="skin.body">机身</label><input id="edBody" type="color" value="#1fa8e6"></div>
-        <div class="edrow"><label data-i18n="skin.accent">描边高光</label><input id="edAccent" type="color" value="#bff7ff"></div>
-        <div class="edrow"><label data-i18n="skin.engine">尾焰</label><input id="edEngine" type="color" value="#ff8a3c"></div>
-        <div class="edrow"><label data-i18n="skin.wing">机翼</label><input id="edWing" type="color" value="#0d5e96"></div>
-        <div class="edrow"><label data-i18n="skin.trail">弹道</label><input id="edTrail" type="color" value="#7df9ff"></div>
+        <div class="edrow"><label data-i18n="skin.body">机身</label><input id="edBody" type="color" value="#3d8ba3"></div>
+        <div class="edrow"><label data-i18n="skin.accent">描边高光</label><input id="edAccent" type="color" value="#cfe7ee"></div>
+        <div class="edrow"><label data-i18n="skin.engine">尾焰</label><input id="edEngine" type="color" value="#e0a06a"></div>
+        <div class="edrow"><label data-i18n="skin.wing">机翼</label><input id="edWing" type="color" value="#274d5c"></div>
+        <div class="edrow"><label data-i18n="skin.trail">弹道</label><input id="edTrail" type="color" value="#8fd4e0"></div>
         <div class="edrow"><label data-i18n="skin.pattern">涂装</label>
           <select id="edPattern">
             <option value="plain" data-i18n="skin.pattern.plain">纯色</option>
@@ -574,9 +667,16 @@
     </div>
   </div>
 
-  <!-- 模块化脚本：core(基础) → entities(绘制) → game(逻辑) → main(启动) -->
+  <!-- 第三方：Three.js r160 UMD（经典 script，挂 window.THREE）。
+       刻意不用 ES module —— file:// 双击打开时 module 会被 CORS 拦掉。
+       文件缺失也不影响游戏：render3d.js 全程 feature-detect，无 THREE 即回落 Canvas2D。 -->
+  <script src="libs/three.min.js"></script>
+
+  <!-- 模块化脚本：core(基础) → entities(2D 绘制) → render3d(3D 覆盖层) → game(逻辑) → main(启动) -->
   <script src="src/core.js"></script>
   <script src="src/entities.js"></script>
+  <script src="src/spriteb64.js"></script>
+  <script src="src/render3d.js"></script>
   <script src="src/game.js"></script>
   <script src="src/main.js"></script>
 

@@ -1,0 +1,11 @@
+S1  出现机型=[shooter,straight,weaver]
+      炮台悬停帧=0  冲锋锁定帧=0  弯曲弹帧=0  峰值 eb=44 en=8  池扩容=0  异常=0
+S2  出现机型=[diver,straight,turret,weaver]
+      炮台悬停帧=321  冲锋锁定帧=0  弯曲弹帧=0  峰值 eb=3 en=6  池扩容=0  异常=0
+S3  出现机型=[diver,kamikaze,shooter,spinner,straight,weaver]
+      炮台悬停帧=0  冲锋锁定帧=9  弯曲弹帧=0  峰值 eb=41 en=8  池扩容=0  异常=0
+S4  出现机型=[curver,sniper,spinner,straight]
+      炮台悬停帧=0  冲锋锁定帧=0  弯曲弹帧=58  峰值 eb=24 en=6  池扩容=0  异常=0
+
+  无池扩容 / 无异常
+
