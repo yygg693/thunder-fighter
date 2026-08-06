@@ -245,7 +245,14 @@ g().power = 1; g().lives = 3; g().bombs = 1;
 // 把虚拟指针钉在玩家身上，避免战机在取样帧里飘走导致拾取判定假阴性
 function dropOnPlayer(type, hue) {
   D.input.pointer.x = pl().x; D.input.pointer.y = pl().y;
-  g().items.push({ x: pl().x, y: pl().y, vy: 0, type, hue, r: 11, dead: false });
+  const it = { x: pl().x, y: pl().y, vy: 0, type, hue, r: 11, dead: false };
+  g().items.push(it);
+  // 隔离环境战斗：清掉残留敌机/敌弹/其它道具，并给玩家短暂护盾，
+  // 防止平衡改动后更强火力在 pump(3) 窗口内误杀环境敌机→掉落→被玩家误收，
+  // 干扰 lives/power/bombs 的逐位断言。3 帧 < spawnInterval，不会刷新出新敌机。
+  g().enemies.length = 0; g().ebullets.length = 0;
+  g().items.length = 0; g().items.push(it);
+  pl().shieldUntil = env.clock.now + 100000;
   env.pump(3);
 }
 dropOnPlayer('P', 200);

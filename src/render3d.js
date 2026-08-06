@@ -129,6 +129,12 @@ void main() {
   function degToRad(d) { return d * Math.PI / 180; }
   function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
 
+  // Boss 底衬辉光相对本体的放大倍数（辉光几何按 1:1 建，draw 里再乘 boss 缩放）
+  const BOSS_GLOW_SCALE = 1.7;
+
+  // 玩家底衬辉光相对机体的放大倍数（与 BOSS_GLOW_SCALE 同构，辉光几何按 1:1 建）
+  const SHIP_GLOW_SCALE = 1.5;
+
   // 用 base64 Data URI 加载纹理：file:// 下 WebGL 无法上传 file:// 图像
   // （跨源/tainted），Data URI 同源且 WebGL-clean，双击 index.html 即可生效。
   function loadTexture(THREE, dataURI) {
@@ -136,6 +142,27 @@ void main() {
       t.colorSpace = THREE.SRGBColorSpace;
     });
     return tex;
+  }
+
+  /* 通用辉光贴图（白心→透明边）：作 Boss 底衬，让深色(void)/稀疏(phaser/weaverqueen)
+   * 精灵在暗星云背景上始终有轮廓可读。一次性构建并缓存（128² 小图，零热路径分配）。
+   * 仅在真实浏览器 init 时构建——headless 冒烟不加载本文件，且 available() 已先拦截。 */
+  let _glowTex = null;
+  function glowTexture(THREE) {
+    if (_glowTex) return _glowTex;
+    const S = 128;
+    const cv = document.createElement('canvas');
+    cv.width = S; cv.height = S;
+    const c = cv.getContext('2d');
+    const g = c.createRadialGradient(S / 2, S / 2, 0, S / 2, S / 2, S / 2);
+    g.addColorStop(0.0, 'rgba(255,255,255,0.95)');
+    g.addColorStop(0.4, 'rgba(255,255,255,0.45)');
+    g.addColorStop(1.0, 'rgba(255,255,255,0)');
+    c.fillStyle = g;
+    c.fillRect(0, 0, S, S);
+    _glowTex = new THREE.CanvasTexture(cv);
+    _glowTex.colorSpace = THREE.SRGBColorSpace;
+    return _glowTex;
   }
 
   /* 6 款 AI sprite billboard：每款皮肤使用独立的 player_<id>.png 纹理，
@@ -183,6 +210,44 @@ void main() {
     return { group: mesh, mat: mat };
   }
 
+  /* Boss 底衬辉光：一张白径向渐变贴片，加法混合 + 按 Boss 色相染色，作本体背后的轮廓衬。
+   * 与本体同构预建于 init（visible=false），draw() 只切显 + 写位置/缩放/染色，
+   * 几何/材质永不重建（S16/S18）。renderOrder=-1 保证在本体(renderOrder=0)之前绘制。 */
+  function buildBossGlow(THREE) {
+    const mat = new THREE.MeshBasicMaterial({
+      map: glowTexture(THREE),
+      transparent: true,
+      depthTest: false,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      opacity: 0.36,
+      color: new THREE.Color(0.6, 0.7, 1.0),
+    });
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(80, 80), mat);
+    mesh.renderOrder = -1;
+    return mesh;
+  }
+
+  /* 玩家底衬辉光：与 Boss 辉光同构——一张白径向渐变贴片，加法混合 + 按皮肤 accent 染色，
+   * 作机体背后的轮廓衬，让深色(stealth)/稀疏精灵在暗星云背景上始终有轮廓可读。
+   * init 一次性预建 idle 于场景（visible=false），draw() 只切显 + 写位置/缩放/染色，
+   * 几何/材质永不重建（S16/S18）。renderOrder=-1 保证在本体(renderOrder=0)之前绘制。
+   * 比 Boss 辉光更淡（opacity 0.22）且放大倍率更小（SHIP_GLOW_SCALE），避免抢本体焦点。 */
+  function buildPlayerGlow(THREE) {
+    const mat = new THREE.MeshBasicMaterial({
+      map: glowTexture(THREE),
+      transparent: true,
+      depthTest: false,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      opacity: 0.22,
+      color: new THREE.Color(0.6, 0.7, 1.0),
+    });
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(42, 50), mat);
+    mesh.renderOrder = -1;
+    return mesh;
+  }
+
   /* 建 / 复用渲染器。幂等：成功后重复调用直接返回 true（每帧都会被调，必须便宜）。
    * canvas2d 参数只用来读尺寸口径，**不会**在它上面创建 WebGL 上下文。 */
   function init(canvas2d) {
@@ -227,10 +292,24 @@ void main() {
       const SHIP_KINDS = ['cyan_knight', 'crimson_falcon', 'emerald', 'violet', 'stealth', 'golden'];
       const ships = {};
       for (let ki = 0; ki < SHIP_KINDS.length; ki++) {
-        const s = buildShip(THREE, 42, 50, SHIP_KINDS[ki]);
+        const sk = SHIP_KINDS[ki];
+        const s = buildShip(THREE, 42, 50, sk);
         s.group.visible = false;
         scene.add(s.group);
-        ships[SHIP_KINDS[ki]] = s;
+        const glow = buildPlayerGlow(THREE);
+        glow.visible = false;
+        scene.add(glow);
+        // 底衬辉光按皮肤 accent 预计算染色（加法混合，亮白晕偏色），draw() 直接 copy 不重算。
+        let glowColor = new THREE.Color(0.6, 0.7, 1.0);
+        if (DJFE.skins && DJFE.skins.presets) {
+          const sp = DJFE.skins.presets.find(s2 => s2.id === sk);
+          if (sp && sp.accent) {
+            const tmp = new THREE.Color(sp.accent);
+            const hsl = {}; tmp.getHSL(hsl);
+            glowColor = new THREE.Color().setHSL(hsl.h, 0.45, 0.72);
+          }
+        }
+        ships[sk] = { group: s.group, mat: s.mat, glow: glow, glowColor: glowColor };
       }
 
       // 7 款 AI sprite billboard（Boss）：init 一次性预建，全部 idle 于场景（visible=false）。
@@ -241,14 +320,17 @@ void main() {
         const bs = buildBoss(THREE, 80, 80, BOSS_KINDS_LIST[bi]);
         bs.group.visible = false;
         scene.add(bs.group);
-        bosses[BOSS_KINDS_LIST[bi]] = bs;
+        const glow = buildBossGlow(THREE);
+        glow.visible = false;
+        scene.add(glow);
+        bosses[BOSS_KINDS_LIST[bi]] = { group: bs.group, mat: bs.mat, glow: glow };
       }
 
       document.body.appendChild(cv);
 
       R = {
         canvas: cv, renderer, scene, camera,
-        ships: ships,                 // { id: { group, mat } }
+        ships: ships,                 // { id: { group, mat, glow, glowColor } }
         bosses: bosses,               // { kind: { group, mat } }
         cur: null, lastSkin: null,    // 当前显示机体 / 上一帧皮肤（切显缓存）
         lastBoss: null,               // 上一帧显示的 Boss kind（切显缓存）
@@ -304,12 +386,16 @@ void main() {
 
       // 皮肤切换：隐藏旧机、切换到目标机体的 billboard 网格（几何/材质预建于 init，永不重建）
       if (sid !== R.lastSkin) {
-        if (R.lastSkin && R.ships[R.lastSkin]) R.ships[R.lastSkin].group.visible = false;
+        if (R.lastSkin && R.ships[R.lastSkin]) {
+          R.ships[R.lastSkin].group.visible = false;
+          const og = R.ships[R.lastSkin].glow; if (og) og.visible = false;
+        }
         R.lastSkin = sid;
       }
 
       const ship = R.ships[sid] || R.ships.cyan_knight;
       ship.group.visible = vis;
+      const pgHide = ship.glow; if (pgHide) pgHide.visible = false;  // 默认隐藏，vis 时再点亮
       if (!vis) {
         // 玩家不可见（重生闪烁/暂停）：仅机体隐藏，场景照渲染保持管线活跃
         R.renderer.render(R.scene, R.camera);
@@ -341,15 +427,29 @@ void main() {
       // 色相：每款皮肤已使用独立纹理，无需再通过 hueRotate 换色。
       ship.mat.uniforms.uHue.value = 0;
 
+      // 玩家底衬辉光：与 Boss 辉光同构，按皮肤 accent 预计算色染色，加法混合 + renderOrder=-1。
+      // 纯渲染层增强，不改动精灵资产、不碰逻辑（S16/S18/S15 守恒）。
+      const pg = ship.glow;
+      if (pg) {
+        pg.visible = true;
+        pg.position.set(p.x, p.y, 0);
+        pg.scale.set((pw / R.baseW) * SHIP_GLOW_SCALE, (ph / R.baseH) * SHIP_GLOW_SCALE, 1);
+        pg.material.color.copy(ship.glowColor);
+      }
+
       // ---- Boss billboard（与 ship 同构：按 kind 切显 + 按 boss.hue 旋转色相）----
       // 逻辑层零侵入：只读 game.boss 的 x/y/w/h/hue/kind，绝不回写任何实体字段。
       // Boss 是纯渲染对象，不入 bullets/enemies 池（S18 不受影响，grown 守恒）。
       // 绘制参数全部由 game.boss 提供，安全默认（|| 80 / || 0）保证无 NaN。
       if (game.boss) {
         const bk = game.boss.kind;
-        const bm = R.bosses[bk] || R.bosses.sentinel;
+        const bs = R.bosses[bk];
+        const bm = bs || R.bosses.sentinel;
         if (R.lastBoss !== bk) {
-          if (R.lastBoss && R.bosses[R.lastBoss]) R.bosses[R.lastBoss].group.visible = false;
+          if (R.lastBoss && R.bosses[R.lastBoss]) {
+            R.bosses[R.lastBoss].group.visible = false;
+            const pg = R.bosses[R.lastBoss].glow; if (pg) pg.visible = false;
+          }
           bm.group.visible = true;
           R.lastBoss = bk;
         }
@@ -367,9 +467,24 @@ void main() {
         // 每款 Boss 已使用独立纹理，无需再通过 hueRotate 换色。
         bm.mat.uniforms.uHue.value = 0;
         bm.mat.uniforms.uAlpha.value = 1;
+
+        // 底衬辉光：让深色(void)/稀疏(phaser/weaverqueen)精灵在暗星云背景上始终有轮廓可读。
+        // 加法混合 + 跟随 Boss 色相；纯渲染层增强，不改动精灵资产、不碰逻辑（S16/S18/S15 守恒）。
+        const bg = bs && bs.glow;
+        if (bg) {
+          bg.visible = true;
+          bg.position.set(p.x, p.y, 0);
+          bg.scale.set((bw / 80) * BOSS_GLOW_SCALE, (bh / 80) * BOSS_GLOW_SCALE, 1);
+          const hue = (typeof game.boss.hue === 'number') ? game.boss.hue : 210;
+          const hh = ((hue % 360) + 360) % 360;
+          // 低饱和 + 高亮度：辉光偏「亮白晕」而非纯色，确保对暗星云(任何色相)都有高对比，
+          // 呼应 review 的「强制高对比测试色」；Boss 主题色由 sprite 本体承载，不靠辉光染色。
+          bg.material.color.setHSL(hh / 360, 0.42, 0.72);
+        }
       } else {
         if (R.lastBoss && R.bosses[R.lastBoss]) {
           R.bosses[R.lastBoss].group.visible = false;
+          const pg = R.bosses[R.lastBoss].glow; if (pg) pg.visible = false;
         }
         R.lastBoss = null;
       }

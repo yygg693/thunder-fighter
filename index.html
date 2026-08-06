@@ -73,22 +73,26 @@
        余光扫到条变色就知道 1.5 倍分窗口开了。 */
     #hud #grazeBar {
       display: inline-block; vertical-align: middle;
-      width: 54px; height: 6px; margin-left: 2px;
-      background: rgba(157,191,196,.16);
-      border: 1px solid var(--line); border-radius: 4px;
+      width: 60px; height: 8px; margin-left: 2px;
+      background: rgba(157,191,196,.28);
+      border: 1px solid rgba(198,182,150,.35); border-radius: 4px;
       overflow: hidden;
     }
     #hud #grazeFill {
       display: block; width: 0%; height: 100%;
-      background: var(--gold);
-      box-shadow: 0 0 8px rgba(216,178,122,.55);
+      background: linear-gradient(90deg, #c9a06a, #ecd4a4);
+      box-shadow: 0 0 10px rgba(216,178,122,.65), inset 0 1px 2px rgba(255,245,230,.25);
       transition: width .08s linear;
+    }
+    #hud span[id="graze"] {
+      color: var(--gold-hi);
+      text-shadow: 0 0 6px rgba(216,178,122,.35);
     }
     #hud #grazeBar.boost { border-color: var(--ember-hi); }
     #hud #grazeBar.boost #grazeFill {
       width: 100% !important;
       background: var(--ember-hi);
-      box-shadow: 0 0 12px rgba(217,138,92,.70);
+      box-shadow: 0 0 12px rgba(217,138,92,.70), inset 0 1px 2px rgba(255,245,230,.25);
       animation: comboPulse .5s ease-in-out infinite alternate;
     }
     #hud .hidden { display: none; }
@@ -122,8 +126,9 @@
     #panel .mini:hover { background: rgba(216,178,122,.14); }
     #hint {
       position: fixed; bottom: 14px; left: 50%; transform: translateX(-50%);
-      color: var(--ink-faint); font-size: 12px; user-select: none; pointer-events: none;
+      color: var(--ink-dim); font-size: 13px; letter-spacing: .3px; user-select: none; pointer-events: none;
       text-align: center; line-height: 1.5;
+      text-shadow: 0 1px 4px rgba(0,0,0,.55), 0 0 12px rgba(22,18,16,.45);
     }
 
     /* 浮层菜单 */

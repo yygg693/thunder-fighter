@@ -676,6 +676,7 @@ window.DJFE = window.DJFE || {};
     game.waveBannerUntil = now + 1600;
     if (game.isBossWave) {
       game.waveRemaining = 0;
+      game.power = Math.min(5, game.power + 1);   // Tier 2（平衡）：Boss 波进场保证火力 +1，给到更厚的 Boss 战火力
       spawnBoss(n, now);
     } else {
       game.waveRemaining = 5 + Math.floor(n * 1.6);
@@ -1551,10 +1552,14 @@ window.DJFE = window.DJFE || {};
       if (prof.pattern !== 'dot') { firePattern(prof, bx, by, p); return; }
     }
     if (p <= 1) {
-      addBullet(bx, by, -11, 4, undefined, bk, bo);
+      // Tier 1（平衡）：cyan dot 火力 1 → 2（±6 双发），提升起手 DPS，p3+ 冻结不动。
+      addBullet(bx - 6, by, -11, 4, undefined, bk, bo);
+      addBullet(bx + 6, by, -11, 4, undefined, bk, bo);
     } else if (p === 2) {
-      addBullet(bx - 8, by, -11, 4, undefined, bk, bo);
-      addBullet(bx + 8, by, -11, 4, undefined, bk, bo);
+      // Tier 1（平衡）：cyan dot 火力 2 → 3（正中 + ±9），p3+ 冻结不动。
+      addBullet(bx, by, -11, 4, undefined, bk, bo);
+      addBullet(bx - 9, by, -11, 4, undefined, bk, bo);
+      addBullet(bx + 9, by, -11, 4, undefined, bk, bo);
     } else if (p === 3) {
       addBullet(bx, by, -12, 4, undefined, bk, bo);
       // cyan dot 侧发弹：vx 恒为 undefined（竖直直飞），仅保留 bx 横向偏移 → 多列竖直光束。
@@ -1692,12 +1697,12 @@ window.DJFE = window.DJFE || {};
     const r = Math.random();
     let type = null;
     if (force) type = r < 0.42 ? 'P' : (r < 0.66 ? 'S' : (r < 0.86 ? 'B' : 'C'));
-    else if (r < 0.09) type = 'P';
-    else if (r < 0.13) type = 'S';
-    else if (r < 0.16) type = 'B';
-    else if (r < 0.175) type = 'L';
-    else if (r < 0.205) type = 'C';   // 金币 3%
-    else if (r < 0.215) type = 'G';   // 散射 1%
+    else if (r < 0.15) type = 'P';   // Tier 2（平衡）：P 掉率 0.09 → 0.15（本构建无难度档，取 normal 档）
+    else if (r < 0.19) type = 'S';
+    else if (r < 0.22) type = 'B';
+    else if (r < 0.235) type = 'L';
+    else if (r < 0.265) type = 'C';   // 金币 3%
+    else if (r < 0.275) type = 'G';   // 散射 1%
     if (!type) return;
     const hue = type === 'P' ? 200 : type === 'S' ? 155 : type === 'B' ? 40
               : type === 'L' ? 0   : type === 'C' ? 46  : 285;
@@ -2081,19 +2086,24 @@ window.DJFE = window.DJFE || {};
    * 全部是模块级常量数组：发射热路径上零分配、零 RNG、逐位可复现（S16）。 */
   const DEG = Math.PI / 180;
   // fan（红隼）：发数 + 半张角(°)。GDD §1.3：2/±6 · 3/±10 · 4/±14 · 6/±18 · 7/±22
-  const FAN_N    = [0, 2, 3, 4, 6, 7];
-  const FAN_HALF = [0, 6, 10, 14, 18, 22];
+  // Tier 1（平衡）：p1 2→3(±10)、p2 3→4(±14)；p3+ 冻结不动。
+  const FAN_N    = [0, 3, 4, 4, 6, 7];
+  const FAN_HALF = [0, 10, 14, 14, 18, 22];
   // homing（游隼）：一律平行直发，追踪本身负责覆盖（§1.3「不做扇形」）
-  const PARA_OFFS = [null, [0], [-8, 8], [-10, 0, 10], [-16, -6, 6, 16], [-19, -9, 0, 9, 19]];
+  // Tier 1（平衡）：p1 1→2([±8])、p2 2→3([0,±10])；p3+ 冻结不动。
+  const PARA_OFFS = [null, [-8, 8], [-10, 0, 10], [-10, 0, 10], [-16, -6, 6, 16], [-19, -9, 0, 9, 19]];
   // laser（紫电）：发数少、穿透多。pierce 语义 = 本发可命中的目标总数上限（P2a 口径）
-  const LASER_OFFS = [null, [0], [0], [-9, 9], [-9, 9], [-11, 0, 11]];
-  const LASER_PC   = [0, 2, 3, 2, 3, 3];
+  // Tier 1（平衡）：p1 1→2(穿3)、p2 1→2(穿3)；p3+ 冻结不动。
+  const LASER_OFFS = [null, [-9, 9], [-9, 9], [-9, 9], [-9, 9], [-11, 0, 11]];
+  const LASER_PC   = [0, 3, 3, 2, 3, 3];
   /* arc（幽灵）：每项是 |av| 的绝对值 —— 0 表示「中路 1 发直射」，
    * 非 0 表示「左右各 1 发，av 取 ∓」。发数 = 0 的个数 + 非 0 的个数×2。
-   * p1→2 · p2→2 · p3→3 · p4→4 · p5→5，与 GDD §1.3 逐档对齐。 */
-  const ARC_AV = [null, [0.010], [0.014], [0, 0.014], [0.014, 0.020], [0, 0.014, 0.020]];
+   * p1→2 · p2→2 · p3→3 · p4→4 · p5→5，与 GDD §1.3 逐档对齐。
+   * Tier 1（平衡）：p1 1→3([0,±0.014])、p2 2→4([±0.014,±0.020])；p3+ 冻结不动。 */
+  const ARC_AV = [null, [0, 0.014], [0.014, 0.020], [0, 0.014], [0.014, 0.020], [0, 0.014, 0.020]];
   // ring（金翼）：发数 + 环爆半径。爆开半径随档位跳变，不是线性放大（§1.3）
-  const RING_OFFS = [null, [0], [0], [-10, 10], [-10, 10], [-13, 0, 13]];
+  // Tier 1（平衡）：p1 1→2([±10])、p2 1→2([±10])；p3+ 冻结不动。
+  const RING_OFFS = [null, [-10, 10], [-10, 10], [-10, 10], [-10, 10], [-13, 0, 13]];
   const RING_R    = [0, 55, 70, 55, 85, 70];
   /* 发射参数 scratch：addBullet 内部把 opt 的字段**同步拷进**池对象后就不再持有引用，
    * 因此整局复用同一个对象是安全的，且避免了每发一次的对象分配。
@@ -3194,15 +3204,20 @@ window.DJFE = window.DJFE || {};
       ctx.textAlign = 'center';
       ctx.fillStyle = stg.accent;
       ctx.font = 'bold 20px -apple-system, "PingFang SC", sans-serif';
-      ctx.fillText(DJFE.t('banner.stagePrefix') + ' ' + game.stage + ' / ' + STAGES.length, W / 2, H * 0.32);
+      // 上移一档（H*0.30 / 0.40），给下方波次提示让出空间，避免每关首波两者重叠
+      ctx.fillText(DJFE.t('banner.stagePrefix') + ' ' + game.stage + ' / ' + STAGES.length, W / 2, H * 0.30);
       ctx.font = 'bold 40px -apple-system, "PingFang SC", sans-serif';
-      glowLine(ctx, stg.accent, W / 2 - 90, H * 0.42 - 12, W / 2 + 90, H * 0.42 - 12, 46, 0.20 * sa, 7);
-      ctx.fillText(stg.name, W / 2, H * 0.42);
+      glowLine(ctx, stg.accent, W / 2 - 90, H * 0.40 - 12, W / 2 + 90, H * 0.40 - 12, 46, 0.20 * sa, 7);
+      ctx.fillText(stg.name, W / 2, H * 0.40);
       ctx.restore();
     }
 
     if (game.state === STATE.PLAYING && now < game.waveBannerUntil) {
       const a = Math.min(1, (game.waveBannerUntil - now) / 400);
+      // 每关首波时关卡横幅(stageBannerUntil)与波次横幅同时出现：把波次提示下移到 H*0.54，
+      // 与上方关卡名(H*0.40)错开；非首波则保持 H*0.44 居中显示
+      const stageActive = now < game.stageBannerUntil;
+      const waveY = stageActive ? H * 0.54 : H * 0.44;
       ctx.save();
       ctx.globalAlpha = a;
       // BOSS 横幅走危险色带（与敌弹同族的暖赭红），普通波次走暖砂金 —— 与 DOM UI 次色同源
@@ -3210,8 +3225,8 @@ window.DJFE = window.DJFE || {};
       ctx.font = 'bold 46px -apple-system, "PingFang SC", sans-serif';
       ctx.textAlign = 'center';
       glowLine(ctx, game.isBossWave ? '#e0724a' : '#dcb87a',
-        W / 2 - 100, H * 0.42 - 14, W / 2 + 100, H * 0.42 - 14, 52, 0.22 * a, 7);
-      ctx.fillText(game.isBossWave ? DJFE.t('banner.bossWave') : (DJFE.t('banner.wavePrefix') + ' ' + game.wave + DJFE.t('banner.waveSuffix')), W / 2, H * 0.42);
+        W / 2 - 100, waveY - 14, W / 2 + 100, waveY - 14, 52, 0.22 * a, 7);
+      ctx.fillText(game.isBossWave ? DJFE.t('banner.bossWave') : (DJFE.t('banner.wavePrefix') + ' ' + game.wave + DJFE.t('banner.waveSuffix')), W / 2, waveY);
       ctx.restore();
     }
 
@@ -3262,15 +3277,23 @@ window.DJFE = window.DJFE || {};
         ctx.fillStyle = 'rgba(255,255,255,.28)';
         rr(bx + 1, by + 1, Math.max(0, bw * r - 2), bh * 0.4, 4); ctx.fill();
       }
-      // Boss 名（描边字 + 发光）
+      // Boss 名（描边字 + 发光）—— 下移避开血条底板，并按血条宽度截断防溢出/重叠
       ctx.save();
       ctx.font = 'bold 13px -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif';
       ctx.textAlign = 'center'; ctx.textBaseline = 'top';
-      glowHue(ctx, bh2, 90, 60, W / 2, by + bh + 15, 44, 0.20);
+      // 血条底板底沿在 by+bh+9(=38)，名签下移到底板之下（nameY=by+bh+14=43）杜绝重叠
+      const nameY = by + bh + 14;
+      let label = b.name || DJFE.t('boss.default');
+      const maxW = bw - 12;                 // 不超出血条左右留白
+      if (ctx.measureText(label).width > maxW) {
+        while (label.length > 1 && ctx.measureText(label + '…').width > maxW) label = label.slice(0, -1);
+        label = label + '…';
+      }
+      glowHue(ctx, bh2, 90, 60, W / 2, nameY + 7, 44, 0.20);
       ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(4,8,20,.85)';
-      ctx.strokeText(b.name || DJFE.t('boss.default'), W / 2, by + bh + 8);
+      ctx.strokeText(label, W / 2, nameY);
       ctx.fillStyle = '#ffe9a8';
-      ctx.fillText(b.name || DJFE.t('boss.default'), W / 2, by + bh + 8);
+      ctx.fillText(label, W / 2, nameY);
       ctx.restore();
     }
 
