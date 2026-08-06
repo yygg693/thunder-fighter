@@ -6,7 +6,7 @@
  * activate 只删「名字 !== 当前 CACHE」的旧缓存；版本号不变的话，已安装的
  * PWA 会一直吃旧的 index.html —— 新加的 <script> 永远加载不到，3D 会静默
  * 退化成 2D，是最难排查的那类劣化。 */
-const CACHE = 'djfe-v1.3.3';
+const CACHE = 'djfe-v1.3.4';
 const ASSETS = [
   '.',
   'index.html',

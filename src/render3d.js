@@ -110,6 +110,8 @@ void main() {
 uniform sampler2D map;
 uniform float uHue;
 uniform float uAlpha;
+uniform vec3 uGlow;
+uniform float uGlowAmt;
 varying vec2 vUv;
 
 vec3 hueRotate(vec3 color, float angle) {
@@ -122,6 +124,10 @@ vec3 hueRotate(vec3 color, float angle) {
 void main() {
   vec4 tex = texture2D(map, vUv);
   vec3 rgb = hueRotate(tex.rgb, uHue);
+  // 自发光：按皮肤 accent 染色，对暗部加成更强（保留高光细节），
+  // 提升 stealth/violet/crimson 等暗色机体的可读性，不改动精灵资产。
+  float lum = dot(rgb, vec3(0.299, 0.587, 0.114));
+  rgb += uGlow * uGlowAmt * (1.0 - lum);
   gl_FragColor = vec4(rgb, tex.a * uAlpha);
 }
 `;
@@ -133,7 +139,7 @@ void main() {
   const BOSS_GLOW_SCALE = 1.7;
 
   // 玩家底衬辉光相对机体的放大倍数（与 BOSS_GLOW_SCALE 同构，辉光几何按 1:1 建）
-  const SHIP_GLOW_SCALE = 1.5;
+  const SHIP_GLOW_SCALE = 1.85;
 
   // 用 base64 Data URI 加载纹理：file:// 下 WebGL 无法上传 file:// 图像
   // （跨源/tainted），Data URI 同源且 WebGL-clean，双击 index.html 即可生效。
@@ -176,7 +182,8 @@ void main() {
     const dataURI = b64['player_' + kind] || b64.player || '';
     const tex = loadTexture(THREE, dataURI);
     const mat = new THREE.ShaderMaterial({
-      uniforms: { map: { value: tex }, uHue: { value: 0 }, uAlpha: { value: 1 } },
+      uniforms: { map: { value: tex }, uHue: { value: 0 }, uAlpha: { value: 1 },
+                 uGlow: { value: new THREE.Color(0, 0, 0) }, uGlowAmt: { value: 0 } },
       vertexShader: BILLBOARD_VERT,
       fragmentShader: BILLBOARD_FRAG,
       transparent: true,
@@ -198,7 +205,8 @@ void main() {
     const dataURI = b64['boss_' + kind] || b64.boss || '';
     const tex = loadTexture(THREE, dataURI);
     const mat = new THREE.ShaderMaterial({
-      uniforms: { map: { value: tex }, uHue: { value: 0 }, uAlpha: { value: 1 } },
+      uniforms: { map: { value: tex }, uHue: { value: 0 }, uAlpha: { value: 1 },
+                 uGlow: { value: new THREE.Color(0, 0, 0) }, uGlowAmt: { value: 0 } },
       vertexShader: BILLBOARD_VERT,
       fragmentShader: BILLBOARD_FRAG,
       transparent: true,
@@ -240,7 +248,7 @@ void main() {
       depthTest: false,
       depthWrite: false,
       blending: THREE.AdditiveBlending,
-      opacity: 0.22,
+      opacity: 0.5,
       color: new THREE.Color(0.6, 0.7, 1.0),
     });
     const mesh = new THREE.Mesh(new THREE.PlaneGeometry(42, 50), mat);
@@ -426,6 +434,11 @@ void main() {
 
       // 色相：每款皮肤已使用独立纹理，无需再通过 hueRotate 换色。
       ship.mat.uniforms.uHue.value = 0;
+
+      // 玩家机体自发光（按皮肤 accent 染色）——暗色机体(stealth/violet/crimson)可读性增强。
+      // 纯渲染层，不改动精灵资产、不碰逻辑（S16/S18/S15 守恒）。
+      ship.mat.uniforms.uGlow.value.copy(ship.glowColor);
+      ship.mat.uniforms.uGlowAmt.value = 0.22;
 
       // 玩家底衬辉光：与 Boss 辉光同构，按皮肤 accent 预计算色染色，加法混合 + renderOrder=-1。
       // 纯渲染层增强，不改动精灵资产、不碰逻辑（S16/S18/S15 守恒）。
