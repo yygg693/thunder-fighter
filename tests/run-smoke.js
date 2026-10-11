@@ -305,6 +305,31 @@ env.keydown('Escape');
 gate('ESC 再次按下恢复 PLAYING（可反复切换）', g().state === STATE.PLAYING);
 noNewRuntimeIssues(env, '暂停/恢复往返无异常', b);
 
+// ---------------------------------------------------------------------
+suite('S6b · 暂停补偿写入正确对象（M-08 回归门）');
+b = snap(env);
+D.Game.toMenu(); D.Game.start();
+env.pump(30);
+// 把四个「技能类」限时增益剩余时长设成远大于逻辑时钟的值；
+// 暂停期间它们不应被挪到 player 上的死字段——正确补偿会把 game.*Until 顺延 pausedDur。
+g().cloakUntil = 5000000; g().dashUntil = 5000000; g().overdriveUntil = 5000000; g().skillCdUntil = 5000000;
+D.Game.togglePause();   // PLAYING -> PAUSED
+env.pump(180);          // 约 3s 暂停，logicNow 随墙钟/帧步前移
+D.Game.togglePause();   // PAUSED -> PLAYING
+env.pump(2);
+probe('暂停补偿应顺延 game.cloakUntil（非 player 死字段）',
+  g().cloakUntil > 5000000,
+  'cloakUntil=' + g().cloakUntil + '（期望 > 5000000，即被暂停时长顺延）');
+probe('暂停补偿应顺延 game.dashUntil',
+  g().dashUntil > 5000000, 'dashUntil=' + g().dashUntil);
+probe('暂停补偿应顺延 game.overdriveUntil',
+  g().overdriveUntil > 5000000, 'overdriveUntil=' + g().overdriveUntil);
+probe('暂停补偿应顺延 game.skillCdUntil',
+  g().skillCdUntil > 5000000, 'skillCdUntil=' + g().skillCdUntil);
+// 复位技能类增益，避免污染后续套件（S7 致命伤害依赖玩家非潜行/非无敌）
+g().cloakUntil = 0; g().dashUntil = 0; g().overdriveUntil = 0; g().skillCdUntil = 0;
+noNewRuntimeIssues(env, 'M-08 暂停补偿无异常', b);
+
 // 暂停期间的绝对时间戳漂移（探针）
 b = snap(env);
 pl().shieldUntil = env.clock.now + 8000;
@@ -582,6 +607,7 @@ const stageWaves = D.__debug.stageWaves;
 const finalWave = (finalStage - 1) * stageWaves + stageWaves;
 g().wave = finalWave; g().stage = finalStage; g().stageWave = stageWaves; g().isBossWave = true;
 g().waveRemaining = 0; g().betweenWaves = false;
+D.commitBest(9999); // M-07 真闸门：抬高种子最高分，使 victory 探针能区分「显示本局分」与「显示历史最高分」
 const bestBeforeVictory = D.getBest();
 const expectedVictoryScore = 10 + finalWave * 100; // 通关波次奖励 wave*100
 r = env.pumpUntil(() => g().state === STATE.VICTORY, 120);
@@ -699,6 +725,86 @@ if (env.report.nan.length) {
   console.log('\n\x1b[31m--- NaN / undefined 绘制参数明细 ---\x1b[0m');
   for (const n of env.report.nan.slice(0, 20)) console.log('  ' + n.where + '  ' + n.detail);
 }
+
+// ---------------------------------------------------------------------
+suite('S-APP · i18n 收口验收（A5 / A6 / A7）');
+b = snap(env);
+// A5 · 双语 key-set 全等（zh 与 en 必须含完全相同的一组 key）
+gate('A5 · I18N.zh 与 I18N.en 的 key 集合全等',
+  Object.keys(D.I18N.zh).sort().join('|') === Object.keys(D.I18N.en).sort().join('|'),
+  'zh=' + Object.keys(D.I18N.zh).length + ' en=' + Object.keys(D.I18N.en).length);
+// A6 · STAGES 全 ASCII key（无中文字面量）+ 各 key 双语言可解析（无裸 key / undefined）
+const _stageKeys = []; for (let n = 1; n <= D.__debug.stageCount; n++) _stageKeys.push('stage.' + n + '.name');
+const _bossKinds = ['sentinel', 'scorpion', 'carrier', 'core', 'phaser', 'void', 'weaverqueen'];
+const _bossKeys = _bossKinds.map(function (k) { return 'boss.' + k + '.name'; });
+let _a6ok = true, _a6detail = '';
+for (const k of _stageKeys.concat(_bossKeys)) {
+  const ascii = !/[\u4e00-\u9fa5]/.test(k);
+  const zh = D.I18N.zh[k], en = D.I18N.en[k];
+  const resolves = zh != null && zh !== k && en != null && en !== k &&
+                   String(zh) !== 'undefined' && String(en) !== 'undefined';
+  if (!(ascii && resolves)) { _a6ok = false; _a6detail += k + ':' + JSON.stringify({ zh: zh, en: en }) + '; '; }
+}
+gate('A6 · STAGES 全 ASCII key（无中文字面量）且双语言可解析', _a6ok, _a6detail);
+// A7 · en 实跑零泄漏（增益 HUD + Boss 名签，均为 DOM 可查文本）
+D.Game.toMenu(); D.Game.start();
+D.settings.lang = 'en';
+g().spreadUntil = 9e9;            // 触发散射增益 HUD
+env.pump(3);
+const _buff = (env.byId.get('buff') && env.byId.get('buff').textContent) || '';
+probe('A7 · en 下增益 HUD 显示 SPREAD（无 undefined / 裸 key）',
+  _buff.indexOf('undefined') < 0 && !/^(stage\.|boss\.)/.test(_buff) && _buff.indexOf('SPREAD') === 0,
+  'buff.textContent=' + JSON.stringify(_buff));
+const _b = D.__debug.spawnBoss('sentinel');
+probe('A7 · en 下 Boss 名取词为本地化串（非 key / undefined）',
+  !!(_b && _b.name) && _b.name !== 'boss.sentinel.name' && _b.name !== 'undefined' && _b.name === 'SENTINEL',
+  'boss.name=' + JSON.stringify(_b && _b.name));
+D.settings.lang = 'zh'; g().spreadUntil = 0; D.Game.toMenu();
+noNewRuntimeIssues(env, 'i18n 收口验收无异常', b);
+
+// ---------------------------------------------------------------------
+// S-BEAM · beam 周期微环（S2 验收，build-plan-a §3.4）
+// ---------------------------------------------------------------------
+suite('S-BEAM · beam 周期微环（S2 验收，build-plan-a §3.4）');
+D.Game.toMenu(); D.Game.start();
+const _skins = D.skins;
+D.skins = { currentId: () => 'violet', current: () => ({ id: 'violet', hue: 280, trail: '#b07cff' }) };   // headless 未加载皮肤系统；桩成 violet 以触发 beam 技能
+// 推进到 Wave 1 出现敌机（最多 ~720 帧，避免开局静默期空转误判）
+let gB = D.__debug.game;
+for (let p = 0; p < 12 && gB.enemies.length === 0; p++) env.pump(60);
+gB = D.__debug.game;
+D.__debug.player.invulnUntil = 1e12;        // 探针期间保活，排除 GAMEOVER 干扰
+const BUDGET = 80;                   // 与 game.js RING_FX_BUDGET 常量一致
+const _py = D.__debug.player.y;      // 玩家 y 固定（仅横移），用于判定敌机在上方
+let budgetOk = true, nanOk = true, beamRingSeen = false;
+for (let i = 0; i < 240; i++) {
+  // 每帧把光柱对齐到「最近的上方敌机」，并重置充能/冷却/排队使其连续触发 ——
+  // beam 是驻留光柱（§2.7），唯有敌机持续落在带宽内才能稳定触发每 24 步的微环。
+  let best = null, bestDy = 1e9;
+  for (const e of gB.enemies) {
+    if (e.hp <= 0) continue;
+    const dy = _py - e.y;            // >0 表示敌机在玩家上方（beam 向上贯穿）
+    if (dy > 8 && dy < 130 && dy < bestDy) { bestDy = dy; best = e; }
+  }
+  if (best) {                                       // 光柱跟随最近上方敌机：玩家位置由 input.pointer 每帧 lerp，须走指针通道
+    if (D.input && D.input.pointer) D.input.pointer.x = best.x;
+    D.__debug.player.x = best.x;                    // 同步快照，避免 lerp 当帧回漂
+  }
+  gB.skillCharge = 1; gB.skillQueued = true; gB.skillCdUntil = 0;   // 每帧重触发 violet beam
+  env.pump(1);
+  if (gB.rings.length > BUDGET) budgetOk = false;
+  for (const rg of gB.rings) {
+    if (![rg.x, rg.y, rg.r, rg.maxR, rg.life, rg.hue].every(Number.isFinite)) nanOk = false;
+    if (rg.alpha != null && !Number.isFinite(rg.alpha)) nanOk = false;
+    if (rg.maxR === 16 && rg.alpha === 0.22) beamRingSeen = true;   // S2 周期微环指纹
+  }
+}
+gate('S2 · rings 不超 RING_FX_BUDGET(80)', budgetOk);
+gate('S2 · ring 全部字段无 NaN（含 alpha）', nanOk);
+probe('S2 · beam 周期微环已发射（maxR=16 & alpha=0.22）', beamRingSeen,
+  'beamRingSeen=' + beamRingSeen);
+D.__debug.player.invulnUntil = 0; gB.skillCharge = 0; gB.skillQueued = false; gB.skillCdUntil = 0; D.skins = _skins; if (D.input && D.input.pointer) D.input.pointer.x = D.__debug.player.x; D.Game.toMenu();
+noNewRuntimeIssues(env, 'beam 周期微环验收无异常', b);
 
 // ---------------------------------------------------------------------
 // 汇总

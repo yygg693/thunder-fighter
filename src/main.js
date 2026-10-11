@@ -9,76 +9,9 @@
   function $(id) { return document.getElementById(id); }
 
   // ---- 多语言 ----
-  const I18N = {
-    zh: {
-      'menu.title': '打飞机', 'menu.sub': '街机弹幕射击', 'menu.best': '历史最高', 'menu.start': '开始游戏', 'menu.settings': '设置',
-      'menu.howto': '手指在触摸板上移动 → 战机跟到对应位置，自动开火<br>点击屏幕放炸弹清屏 · WASD / 方向键也能操控 · ESC 暂停 · Shift / 右键放技能',
-      'menu.lb': '本地排行榜',
-      'diff.easy': '简单', 'diff.normal': '普通', 'diff.hard': '困难',
-      'hud.score': '分数', 'hud.life': '生命', 'hud.bomb': '炸弹', 'hud.stage': '关卡', 'hud.wave': '波次', 'hud.power': '火力', 'hud.combo': '连击', 'hud.graze': '擦弹', 'hud.buff': '增益',
-      'go.maxcombo': '最高连击',
-      'panel.sens': '触摸板灵敏度',
-      'retry': '再来一局', 'menuBtn': '返回菜单',
-      'pause.title': '已暂停', 'resume': '继续',
-      'gameover.title': '坠机了！', 'gameover.score': '本局得分', 'gameover.best': '历史最高',
-      'victory.title': '通关！', 'victory.sub': '全部关卡肃清 · 指挥官辛苦了', 'victory.score': '本局得分', 'victory.best': '历史最高',
-      'result.bossBreak': '击破 Boss', 'result.graze': '擦弹', 'result.grazeMax': '最高擦弹', 'result.empty': '本局未记录击破',
-      'hint': '移动手指控制战机 · 自动开火 · 点击放炸弹 · 击杀掉 火力(P)/护盾(S)/炸弹(B)/生命(L) · WASD/方向键 · ESC 暂停 · Shift/右键 放技能',
-      'settings.title': '设置', 'settings.music': '音乐音量', 'settings.sfx': '音效音量',
-      'settings.fullscreen': '全屏', 'settings.lang': '语言', 'settings.close': '关闭', 'settings.on': '开启', 'settings.off': '退出', 'settings.skillAuto': '技能自动释放',
-      'lb.empty': '暂无记录',
-      'menu.skin': '皮肤',
-      'skin.title': '战机皮肤', 'skin.tip': '选择预设，或新建自己的涂装（相当于内置 Mod）',
-      'skin.create': '新建皮肤', 'skin.close': '返回', 'skin.editor': '设计皮肤',
-      'skin.name': '名称', 'skin.body': '机身', 'skin.accent': '描边高光', 'skin.engine': '尾焰',
-      'skin.wing': '机翼', 'skin.trail': '弹道', 'skin.pattern': '涂装',
-      'skin.pattern.plain': '纯色', 'skin.pattern.stripe': '条纹', 'skin.pattern.hex': '蜂巢', 'skin.pattern.carbon': '碳纤',
-      'skin.save': '保存皮肤', 'skin.cancel': '取消', 'skin.use': '使用', 'skin.del': '删除', 'skin.using': '使用中',
-      // 皮肤面板 v2 · 每款预设皮肤文案（key 前缀 skin.<id>.*，由 renderSkinCards 内联解析，不走 data-i18n）
-      'skin.weapon.label': '武器', 'skin.custom.tagline': '自定义涂装',
-      'skin.cyan_knight.name': '苍蓝骑士', 'skin.cyan_knight.tagline': '宽正面火力覆盖的骑士型', 'skin.cyan_knight.weapon': '笔直弹道·稳定输出', 'skin.cyan_knight.flavor': '静水流深，一击贯虹',
-      'skin.crimson_falcon.name': '烈焰红隼', 'skin.crimson_falcon.tagline': '近身扇形覆盖的猛禽型', 'skin.crimson_falcon.weapon': '扇形散射·贴脸爆发', 'skin.crimson_falcon.flavor': '烈焰掠空，羽刃如潮',
-      'skin.emerald.name': '翡翠游隼', 'skin.emerald.tagline': '自动索敌的灵巧游隼', 'skin.emerald.weapon': '微追踪弹·自动咬尾', 'skin.emerald.flavor': '翠羽穿林，矢无虚发',
-      'skin.violet.name': '紫电惊鸿', 'skin.violet.tagline': '穿透光束的惊鸿机型', 'skin.violet.weapon': '穿透激光·贯穿一线', 'skin.violet.flavor': '紫电裂空，一瞬惊鸿',
-      'skin.stealth.name': '暗夜幽灵', 'skin.stealth.tagline': '弧波荡散的隐身机体', 'skin.stealth.weapon': '弧波震荡·范围荡散', 'skin.stealth.flavor': '暗夜无声，弧光潜行',
-      'skin.golden.name': '黄金圣翼', 'skin.golden.tagline': '环爆圣翼的守护机型', 'skin.golden.weapon': '环形爆裂·近身守护',       'skin.golden.flavor': '圣翼垂光，金环绽放',
-      'banner.stagePrefix': '关卡', 'banner.wavePrefix': '第', 'banner.waveSuffix': '波', 'banner.bossWave': 'BOSS 来袭！', 'boss.default': 'BOSS', 'title': '雷霆战机', 'brand.arcade': '◆ 街机 ◆'
-    },
-    en: {
-      'menu.title': 'Fighter Shooter', 'menu.sub': 'FIGHTER SHOOTER', 'menu.best': 'BEST', 'menu.start': 'START', 'menu.settings': 'SETTINGS',
-      'menu.howto': 'Move a finger on the touchpad → ship follows, auto-fire<br>Tap to drop a bomb · WASD / Arrows also work · ESC to pause · Shift / Right-click for skill',
-      'menu.lb': 'LEADERBOARD',
-      'diff.easy': 'EASY', 'diff.normal': 'NORMAL', 'diff.hard': 'HARD',
-      'hud.score': 'SCORE', 'hud.life': 'LIVES', 'hud.bomb': 'BOMB', 'hud.stage': 'STAGE', 'hud.wave': 'WAVE', 'hud.power': 'POWER', 'hud.combo': 'COMBO', 'hud.graze': 'GRAZE', 'hud.buff': 'BUFF',
-      'go.maxcombo': 'MAX COMBO',
-      'panel.sens': 'Touchpad Sens',
-      'retry': 'RETRY', 'menuBtn': 'MENU',
-      'pause.title': 'PAUSED', 'resume': 'RESUME',
-      'gameover.title': 'GAME OVER', 'gameover.score': 'SCORE', 'gameover.best': 'BEST',
-      'victory.title': 'VICTORY!', 'victory.sub': 'All stages cleared · Well done, commander', 'victory.score': 'SCORE', 'victory.best': 'BEST',
-      'result.bossBreak': 'BOSSES DOWN', 'result.graze': 'GRAZE', 'result.grazeMax': 'MAX GRAZE', 'result.empty': 'No kills recorded',
-      'hint': 'Move to steer · auto-fire · tap to bomb · drops: Power(P)/Shield(S)/Bomb(B)/Life(L) · WASD/Arrows · ESC pause · Shift/Right-click for skill',
-      'settings.title': 'SETTINGS', 'settings.music': 'Music', 'settings.sfx': 'SFX',
-      'settings.fullscreen': 'Fullscreen', 'settings.lang': 'Language', 'settings.close': 'CLOSE', 'settings.on': 'ON', 'settings.off': 'OFF', 'settings.skillAuto': 'Auto Skill',
-      'lb.empty': 'No records yet',
-      'menu.skin': 'SKINS',
-      'skin.title': 'SHIP SKINS', 'skin.tip': 'Pick a preset, or design your own (built-in mod)',
-      'skin.create': 'NEW SKIN', 'skin.close': 'BACK', 'skin.editor': 'DESIGN SKIN',
-      'skin.name': 'NAME', 'skin.body': 'BODY', 'skin.accent': 'TRIM', 'skin.engine': 'ENGINE',
-      'skin.wing': 'WING', 'skin.trail': 'TRAIL', 'skin.pattern': 'PATTERN',
-      'skin.pattern.plain': 'Plain', 'skin.pattern.stripe': 'Stripe', 'skin.pattern.hex': 'Hex', 'skin.pattern.carbon': 'Carbon',
-      'skin.save': 'SAVE SKIN', 'skin.cancel': 'CANCEL', 'skin.use': 'USE', 'skin.del': 'DEL', 'skin.using': 'IN USE',
-      // 皮肤面板 v2 · 每款预设皮肤英文文案（key 前缀 skin.<id>.*）
-      'skin.weapon.label': 'WEAPON', 'skin.custom.tagline': 'Custom skin',
-      'skin.cyan_knight.name': 'Azure Knight', 'skin.cyan_knight.tagline': 'Knight frame, wide frontal coverage', 'skin.cyan_knight.weapon': 'Straight bolts, steady DPS', 'skin.cyan_knight.flavor': 'Still water, one shot through the bow',
-      'skin.crimson_falcon.name': 'Crimson Falcon', 'skin.crimson_falcon.tagline': 'Raptor frame, close-range fan spray', 'skin.crimson_falcon.weapon': 'Fan spread, point-blank burst', 'skin.crimson_falcon.flavor': 'Flame sweeps sky, feather-blades tide',
-      'skin.emerald.name': 'Emerald Peregrine', 'skin.emerald.tagline': 'Nimble falcon, auto-homing shots', 'skin.emerald.weapon': 'Homing darts, auto-lock tail', 'skin.emerald.flavor': 'Jade darts the wood, sure to hit',
-      'skin.violet.name': 'Violet Comet', 'skin.violet.tagline': 'Comet frame, piercing beam line', 'skin.violet.weapon': 'Piercing laser, line-punch', 'skin.violet.flavor': 'Violet rips the dark, a comet\'s wink',
-      'skin.stealth.name': 'Shadow Phantom', 'skin.stealth.tagline': 'Stealth frame, arcing shockwave', 'skin.stealth.weapon': 'Arc wave, area disperse', 'skin.stealth.flavor': 'Silent night, arc light gliding',
-      'skin.golden.name': 'Golden Seraph', 'skin.golden.tagline': 'Seraph wings, ring-burst guard', 'skin.golden.weapon': 'Ring blast, close guard', 'skin.golden.flavor': 'Seraph sheds light, gold rings bloom',
-      'banner.stagePrefix': 'STAGE', 'banner.wavePrefix': 'WAVE', 'banner.waveSuffix': '', 'banner.bossWave': 'BOSS 来袭！', 'boss.default': 'BOSS', 'title': 'Fighter Shooter', 'brand.arcade': '◆ ARCADE ◆'
-    },
-  };
+  // 字典与 DJFE.t 已下沉到 core.js（game.js 早于 main.js 加载且要用 t）。
+  // 这里取的是同一个对象引用，下方对 I18N 的读写与改动前完全等价。
+  const I18N = DJFE.I18N;
   function applyI18n() {
     const lang = DJFE.settings.lang || 'zh';
     const dict = I18N[lang] || I18N.zh;
@@ -89,11 +22,6 @@
     document.documentElement.lang = (lang === 'en') ? 'en' : 'zh-CN';
     document.title = DJFE.t('title');
   }
-
-  DJFE.t = function (k) {
-    const d = I18N[DJFE.settings.lang || 'zh'] || I18N.zh;
-    return (d && d[k] != null) ? d[k] : (I18N.zh[k] != null ? I18N.zh[k] : k);
-  };
 
   // ---- 触屏适配：操控提示换文案 + 触屏按钮接线 ----
   if (DJFE.isTouch) {

@@ -14,7 +14,7 @@ window.DJFE = window.DJFE || {};
   // ---- 颜色工具 ----
   function hexToRgb2(h) {
     h = (h || '#3d8ba3').replace('#', '');
-    if (h.length === 3) h = h.split('').map(x => x + x).join('');
+    if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
     const n = parseInt(h, 16);
     return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
   }
