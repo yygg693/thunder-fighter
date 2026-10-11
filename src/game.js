@@ -219,7 +219,7 @@ window.DJFE = window.DJFE || {};
   const POOL = {
     bullets:   new Pool('bullets',   512,  mkBullet),
     ebullets:  new Pool('ebullets',  1600, mkEbullet),
-    particles: new Pool('particles', 3000, mkParticle),
+    particles: new Pool('particles', 7000, mkParticle),
     enemies:   new Pool('enemies',   256,  mkEnemy),
     items:     new Pool('items',     128,  mkItem),
     rings:     new Pool('rings',     96,   mkRing),
@@ -317,7 +317,7 @@ window.DJFE = window.DJFE || {};
   // ---- 配色工具（背景渐变/星云用） ----
   function hexToRgb(h) {
     h = (h || '#000000').replace('#', '');
-    if (h.length === 3) h = h.split('').map(c => c + c).join('');
+    if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
     const n = parseInt(h, 16);
     return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
   }
@@ -499,11 +499,14 @@ window.DJFE = window.DJFE || {};
       if (pausedDur > 0) {
         const p = player;
         if (_pauseLogicAt < p.shieldUntil) p.shieldUntil += pausedDur;
-        if (_pauseLogicAt < p.cloakUntil) p.cloakUntil += pausedDur;
-        if (_pauseLogicAt < p.dashUntil) p.dashUntil += pausedDur;
-        if (_pauseLogicAt < p.overdriveUntil) p.overdriveUntil += pausedDur;
+        // M-08 修复：cloak/dash/overdrive/skillCd 实际住在 game 对象（运行期全用 game.*Until），
+        // 旧代码读写的是 player 上的死字段（恒 0），补偿分支永不触发、暂停照样吞掉技能类增益。
+        // 故条件与赋值都指向 game。shield/invuln 确在 player 上，保持不动。
+        if (_pauseLogicAt < game.cloakUntil) game.cloakUntil += pausedDur;
+        if (_pauseLogicAt < game.dashUntil) game.dashUntil += pausedDur;
+        if (_pauseLogicAt < game.overdriveUntil) game.overdriveUntil += pausedDur;
         if (_pauseLogicAt < p.invulnUntil) p.invulnUntil += pausedDur;
-        if (_pauseLogicAt < p.skillCdUntil) p.skillCdUntil += pausedDur;
+        if (_pauseLogicAt < game.skillCdUntil) game.skillCdUntil += pausedDur;
       }
     }
     // 触屏控制层只在 PLAYING 状态显示（CSS 还需 pointer:coarse 匹配）
@@ -548,7 +551,7 @@ window.DJFE = window.DJFE || {};
         `<div class="lbrow"><span class="lbrank">${i + 1}</span>` +
         `<span class="lbscore">${e.score}</span>` +
         `<span class="lbgraze">G ${(e.graze || 0)}</span>` +
-        `<span class="lbstage">${e.stage ? ('第' + e.stage + '关') : ''}</span></div>`
+        `<span class="lbstage">${e.stage ? (DJFE.t('result.stagePrefix') + ' ' + e.stage + DJFE.t('result.stageSuffix')) : ''}</span></div>`
       ).join('');
     });
   }
@@ -567,17 +570,17 @@ window.DJFE = window.DJFE || {};
     // accent 一律降饱和，作为大气散射色而非霓虹描边色 —— 空气感来自层叠星云而非高饱和线条。
     // accent2 = 星云第二色调（冷暖对位）。层叠星云交替使用 accent / accent2，
     // 两个色温在低透明度下互相渗透，才有「画意」的空气感，而不是单色糊一片。
-    { name: '近地轨道', bg: '#0d1117', accent: '#7fb0bd', accent2: '#c98f6b', bossName: '哨戒机甲', bossHue: 198, bossHp: 290, bossKind: 'sentinel' },
-    { name: '陨石带',   bg: '#151016', accent: '#c99a6b', accent2: '#8a6f9c', bossName: '采矿巨蝎', bossHue: 32,  bossHp: 430, bossKind: 'scorpion' },
-    { name: '电离层',   bg: '#0e1418', accent: '#8fb89c', accent2: '#b58fa8', bossName: '雷云母舰', bossHue: 150, bossHp: 580, bossKind: 'carrier' },
-    { name: '深空要塞', bg: '#17101a', accent: '#b98aa0', accent2: '#7f93b5', bossName: '歼灭核心', bossHue: 338, bossHp: 460, bossKind: 'core' },
-    { name: '相位回廊', bg: '#12101d', accent: '#9d8fc4', accent2: '#c78fa6', bossName: '相位幻影', bossHue: 288, bossHp: 500, bossKind: 'phaser' },
-    { name: '终末虚空', bg: '#0b0a14', accent: '#8f92c9', accent2: '#6fa6b8', bossName: '终末虚空', bossHue: 262, bossHp: 640, bossKind: 'void' },
+    { nameKey: 'stage.1.name', bg: '#0d1117', accent: '#7fb0bd', accent2: '#c98f6b', bossKey: 'boss.sentinel.name', bossHue: 198, bossHp: 290, bossKind: 'sentinel' },
+    { nameKey: 'stage.2.name', bg: '#151016', accent: '#c99a6b', accent2: '#8a6f9c', bossKey: 'boss.scorpion.name', bossHue: 32,  bossHp: 430, bossKind: 'scorpion' },
+    { nameKey: 'stage.3.name', bg: '#0e1418', accent: '#8fb89c', accent2: '#b58fa8', bossKey: 'boss.carrier.name', bossHue: 150, bossHp: 580, bossKind: 'carrier' },
+    { nameKey: 'stage.4.name', bg: '#17101a', accent: '#b98aa0', accent2: '#7f93b5', bossKey: 'boss.core.name', bossHue: 338, bossHp: 460, bossKind: 'core' },
+    { nameKey: 'stage.5.name', bg: '#12101d', accent: '#9d8fc4', accent2: '#c78fa6', bossKey: 'boss.phaser.name', bossHue: 288, bossHp: 500, bossKind: 'phaser' },
+    { nameKey: 'stage.6.name', bg: '#0b0a14', accent: '#8f92c9', accent2: '#6fa6b8', bossKey: 'boss.void.name', bossHue: 262, bossHp: 640, bossKind: 'void' },
     /* S7 EX·织网（t3-gameplay-breadth §7.7 方案 A）：终末虚空崩解后的「余波 Boss」。
      * 追加而不是替换 —— beginWave / spawnBoss / victory 全走既有路径，
      * STAGES.length 变 7 后 __debug.stageCount 与通关门 (stage >= STAGES.length)
      * 自动跟随，冒烟 S15 的 finalWave 从 stageCount 派生，无需改测试。 */
-    { name: 'EX·织网',  bg: '#100b19', accent: '#b18fd6', accent2: '#8fc2b4', bossName: '织网者', bossHue: 283, bossHp: 1500, bossKind: 'weaverqueen' },
+    { nameKey: 'stage.7.name', bg: '#100b19', accent: '#b18fd6', accent2: '#8fc2b4', bossKey: 'boss.weaverqueen.name', bossHue: 283, bossHp: 1500, bossKind: 'weaverqueen' },
   ];
 
   let selectedDiff = 'normal';
@@ -654,7 +657,7 @@ window.DJFE = window.DJFE || {};
     game.score = DJFE.commitBest(game.score);
     // T3-8：graze 取 maxGraze（峰值），与 GAMEOVER 分支同源
     DJFE.addLeaderboard({ score: raw, stage: game.stage, date: new Date().toISOString().slice(0, 10), win: true, graze: game.maxGraze | 0 });
-    const fv = document.getElementById('finalScoreV'); if (fv) fv.textContent = game.score;
+    const fv = document.getElementById('finalScoreV'); if (fv) fv.textContent = raw; // M-07：结算显示本局分；上一步 commitBest 已把 game.score 覆盖成最高分
     const bv = document.getElementById('bestV'); if (bv) bv.textContent = DJFE.getBest();
     if (maxComboVEl) maxComboVEl.textContent = game.maxCombo;
     renderResultPanel();
@@ -1028,7 +1031,7 @@ window.DJFE = window.DJFE || {};
     game.boss = {
       kind, x: W / 2, y: -90, ty: H * 0.16,
       hp, maxHp: hp, w: K.w, h: K.h,
-      hue: st.bossHue, name: st.bossName,
+      hue: st.bossHue, name: DJFE.t(st.bossKey),
       phase: 0, fireT: 0, fireGap: Math.max(420, 900 - tier * 120),
       px: W / 2, py: -90, sx: 0, sy: 0,
       spawnT,         // 入场逻辑时刻(ms)：击破耗时 = logicNow() - spawnT
@@ -1062,6 +1065,7 @@ window.DJFE = window.DJFE || {};
     enterBossPhase(game.boss, 0);
     audio.boss();
     audio.music.setIntensity('boss'); audio.music.setStage(game.stage);
+    return game.boss;   // 返回装配好的 Boss 引用（__debug.spawnBoss 透传，生产侧忽略返回值）
   }
   /* ===================================================================
    * 弹幕原语库
@@ -1864,12 +1868,13 @@ window.DJFE = window.DJFE || {};
    * 三条硬纪律（与 GDD 约束逐字对齐）：
    *   ① S16 零渲染 RNG —— 角度全由确定性黄金角相位推导（ei × G），速度按奇偶取上下限，
    *      全程不调用 Math.random()，不平移全局随机种子（explode 的 RNG 保持原样不变）。
-   *   ② S18 零扩容 —— 碎片条/闪核复用 particles 池（cap 3000），微环复用 rings 池（cap 96）；
+   *   ② S18 零扩容 —— 碎片条/闪核复用 particles 池（cap 7000），微环复用 rings 池（cap 96）；
    *      微环仅当 game.rings.length < RING_FX_BUDGET(80) 才出，超预算只丢环、不丢粒子、不掉伤害。
    *   ③ §6 尺寸守区间 —— sz₀∈[4,9]、微环 maxR∈[12,30]、碎片条 ar≥4（不退化回圆）。
    *
    * 档位按 b.kind 推导（§3.4）：dot/homing/arc→M，fan→S，laser/ring→L（ring 直击）。
    * beam（violet 技能变体）不适用离散命中档（§9 未决 3），强制轻量档、低频 tick。 */
+  let _beamRingFrame = -999;   // S2：beam 周期微环全局节流锚（runFrames 单调、跨局连续，无需随 startGame 复位）
   function spawnHitImpact(b, en, ei, now, mode) {
     const kind = b.kind || '';
     let N, spdMin, spdMax, sz0, microRing, life, ar;
@@ -1904,6 +1909,14 @@ window.DJFE = window.DJFE || {};
     if (microRing > 0 && mode !== 'beam') {
       if (game.rings.length < RING_FX_BUDGET) addRing(b.x, b.y, b.hue, microRing);
     }
+    // 周期微环（beam 专用，✅ S2 已拍板启用）：每 24 逻辑步出一道淡环，给连续 beam 可见"连接"脉冲。
+    // 全局节流（_beamRingFrame）不随单帧命中敌数放大；纯 FX、零行为差，受 RING_FX_BUDGET 守护。
+    if (mode === 'beam') {
+      if (game.runFrames - _beamRingFrame >= 24) {
+        _beamRingFrame = game.runFrames;
+        if (game.rings.length < RING_FX_BUDGET) addRing(b.x, b.y, b.hue, 16, 0.22);
+      }
+    }
   }
   /* T3-7 · Boss 崩落：死亡瞬间按舰体几何碎裂成板片，铺在 60 发 explode 之上。
    * 与 explode() 的分工：explode 是「火」（随机爆散的高温火花），崩落是「壳」
@@ -1914,7 +1927,7 @@ window.DJFE = window.DJFE || {};
    *   ① 零 RNG —— 虽然这里在 step() 内、用 Math.random() 并不违反 S16，但那会
    *      平移全局随机序列，让六款既有 Boss 的爆炸形状全部改样。几何驱动既守住
    *      "不破坏既有 Boss"，又顺带让崩落方向在六档刷新率下逐位一致。
-   *   ② 24 颗，落在 particles 池（cap 3000）现有预算内。同帧 explode 已经吃掉
+   *   ② 24 颗，落在 particles 池（cap 7000）现有预算内。同帧 explode 已经吃掉
    *      60×19=1140 颗，再加 24 颗离上限还有一大截 —— 不调 cap（S18 grown===0）。
    *   ③ life ≤ 1 —— 粒子绘制拿 life 直接当 globalAlpha，超过 1 会把混合打爆。 */
   const COLLAPSE_N = 24;
@@ -1936,9 +1949,10 @@ window.DJFE = window.DJFE || {};
       );
     }
   }
-  function addRing(x, y, hue, maxR) {
+  function addRing(x, y, hue, maxR, alpha) {
     const rg = POOL.rings.get();
     rg.x = x; rg.y = y; rg.r = 8; rg.maxR = maxR; rg.life = 1; rg.hue = hue;
+    rg.alpha = (alpha != null) ? alpha : null;   // S2：beam 周期微环淡环(alpha=0.22)；其余环回落旧行为
     rg.pr = rg.r;
     game.rings.push(rg);
   }
@@ -2003,7 +2017,7 @@ window.DJFE = window.DJFE || {};
       lines.push('  ' + k.padEnd(10) + String(p.used).padStart(4) + ' / peak ' + String(p.peak).padStart(4) + ' / cap ' + String(p.cap).padStart(4) + (p.grown ? '  GROWN ' + p.grown : ''));
     }
     ctx.save();
-    ctx.setTransform(1, 0, 0, 1, 0, 0);   // 不受屏震 translate 影响
+    ctx.setTransform((DJFE.dpr && DJFE.dpr()) || 1, 0, 0, (DJFE.dpr && DJFE.dpr()) || 1, 0, 0);   // 不受屏震 translate 影响（按 DPR 缩放保持清晰）
     ctx.font = '11px ui-monospace, Menlo, Consolas, monospace';
     ctx.textAlign = 'left'; ctx.textBaseline = 'top';
     let wMax = 0;
@@ -2778,7 +2792,7 @@ window.DJFE = window.DJFE || {};
         buffWrapEl.classList.toggle('hidden', !on);
         if (on) {
           const sec = Math.max(1, Math.ceil(rem / 1000));   // 向上取整：显示 0s 却还能打是更糟的谎
-          buffEl.textContent = ((DJFE.settings && DJFE.settings.lang === 'en') ? 'SPREAD ' : '散射 ') + sec + 's';
+          buffEl.textContent = DJFE.t('buff.spread') + ' ' + sec + 's';
         }
       }
       /* 2c-2 · 技能 HUD（独立 #skillWrap，D9）。主理人裁决口径：充能 >= 50% 即显示进度条；
@@ -3172,10 +3186,12 @@ window.DJFE = window.DJFE || {};
 
     // 冲击波环：柔调下改「双环」——外圈薄而透，内圈稍实，边缘不再是一根硬线
     game.rings.forEach(rg => {
-      ctx.strokeStyle = `hsla(${rg.hue},70%,74%,${rg.life * 0.42})`;
+      const aOut = rg.alpha != null ? rg.alpha : rg.life * 0.42;
+      const aIn  = rg.alpha != null ? rg.alpha : rg.life * 0.62;
+      ctx.strokeStyle = `hsla(${rg.hue},70%,74%,${aOut})`;
       ctx.lineWidth = 7;
       ctx.beginPath(); ctx.arc(rg.x, rg.y, rg.r, 0, Math.PI * 2); ctx.stroke();
-      ctx.strokeStyle = `hsla(${rg.hue},80%,82%,${rg.life * 0.62})`;
+      ctx.strokeStyle = `hsla(${rg.hue},80%,82%,${aIn})`;
       ctx.lineWidth = 2;
       ctx.beginPath(); ctx.arc(rg.x, rg.y, rg.r, 0, Math.PI * 2); ctx.stroke();
     });
@@ -3208,7 +3224,7 @@ window.DJFE = window.DJFE || {};
       ctx.fillText(DJFE.t('banner.stagePrefix') + ' ' + game.stage + ' / ' + STAGES.length, W / 2, H * 0.30);
       ctx.font = 'bold 40px -apple-system, "PingFang SC", sans-serif';
       glowLine(ctx, stg.accent, W / 2 - 90, H * 0.40 - 12, W / 2 + 90, H * 0.40 - 12, 46, 0.20 * sa, 7);
-      ctx.fillText(stg.name, W / 2, H * 0.40);
+      ctx.fillText(DJFE.t(stg.nameKey), W / 2, H * 0.40);
       ctx.restore();
     }
 

@@ -14,3 +14,11 @@ Thumbs.db
 
 # AI 原始贴图备份（可重新生成，体积大不进版本控制）
 .raw_v1/
+
+# 构建产物 / 本地 APK（勿入版本库）
+*.apk
+
+# 调试临时文件（切勿提交）
+_backup_preclean/
+tools/__pycache__/
+*.pyc
